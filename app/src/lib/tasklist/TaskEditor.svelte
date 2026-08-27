@@ -51,7 +51,8 @@
         task.categoryId = id;
       }
     }
-    await db.tasks.put(task);
+    // task may be a $state proxy — Dexie needs a plain snapshot (structuredClone)
+    await db.tasks.put($state.snapshot(task));
     onclose();
   }
 
