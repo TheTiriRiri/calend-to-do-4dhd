@@ -1,8 +1,9 @@
-# ADHD Calendar + Task List PWA — Implementation Plan (v2)
+# ADHD Calendar + Task List PWA — Implementation Plan (v3)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 v2: external review v1 applied (H1 history view, H2 hosting before real data, H3 solution→task spawn, M1 container reachability, M2 undo completion, M3 week view, M4 reorder cut recorded, M5 category UI, M6 master sort, M7 import confirm, M8 Svelte syntax, M9 e2e extended, S1–S10).
+v3: review v2 residuals (R1 wizard selector scoping, R2 test counts, R3 container re-check after step delete, R4 midnight guard) + accepted nits; review v3 N1 (heading outside button in MasterList) + stale count fix.
 
 **Goal:** Build the v1 app from `specs/2026-08-27-adhd-calendar-tasklist-ios-design.md` (v3, PWA): calendar + two-level task list with enforced A/B/C order, automatic rollover, OS-level daily review reminder, five-step problem form, task breakdown, history view, JSON backup.
 
@@ -391,7 +392,7 @@ git commit -m "feat: task types, date utils, daily-list queries with automatic r
 import { describe, it, expect } from 'vitest';
 import { newTask } from '../../src/lib/models/types';
 import { isCollapsed } from '../../src/lib/models/collapse';
-import { completeWithParent, uncompleteWithParent } from '../../src/lib/models/completion';
+import { completeWithParent, completeParentIfDone, uncompleteWithParent } from '../../src/lib/models/completion';
 import { moveToNextDay, schedule, unschedule } from '../../src/lib/models/schedule';
 import { addDays, startOfDay, toISODate } from '../../src/lib/models/dates';
 
@@ -469,6 +470,22 @@ describe('uncompleteWithParent (mis-tap undo)', () => {
     const changed = uncompleteWithParent(s1, all);
     expect(s1.dateCompleted).toBeUndefined();
     expect(changed).toEqual([s1]);
+  });
+});
+
+describe('completeParentIfDone (container re-check after step deletion)', () => {
+  it('completes a container whose remaining children are all done', () => {
+    const parent = newTask('p', 'b');
+    const done = newTask('d', 'b'); done.parentId = parent.id; done.dateCompleted = now.toISOString();
+    expect(completeParentIfDone(parent.id, [parent, done], now)).toEqual(parent);
+    expect(parent.dateCompleted).toBe(now.toISOString());
+  });
+
+  it('leaves a container with open or zero children alone', () => {
+    const parent = newTask('p', 'b');
+    const open = newTask('o', 'b'); open.parentId = parent.id;
+    expect(completeParentIfDone(parent.id, [parent, open], now)).toBeUndefined();
+    expect(completeParentIfDone(parent.id, [parent], now)).toBeUndefined();
   });
 });
 
@@ -563,6 +580,20 @@ export function uncompleteWithParent(task: Task, all: Task[]): Task[] {
   }
   return changed;
 }
+
+/** After a step is DELETED, its container may have only completed children left
+ *  (nothing else re-checks on delete). Completes it and returns it, or returns
+ *  undefined. Zero remaining children → parent becomes a plain task (untouched). */
+export function completeParentIfDone(parentId: string, all: Task[], now: Date = new Date()): Task | undefined {
+  const parent = all.find((t) => t.id === parentId);
+  if (!parent || parent.dateCompleted) return undefined;
+  const children = all.filter((t) => t.parentId === parentId);
+  if (children.length > 0 && children.every((c) => c.dateCompleted)) {
+    parent.dateCompleted = now.toISOString();
+    return parent;
+  }
+  return undefined;
+}
 ```
 
 - [ ] **Step 5: Implement `schedule.ts`**
@@ -590,7 +621,7 @@ export function unschedule(t: Task): void {
 - [ ] **Step 6: Run tests to verify they pass**
 
 Run: `npm run test:unit`
-Expected: PASS (19 tests total)
+Expected: PASS (22 tests total)
 
 - [ ] **Step 7: Commit**
 
@@ -687,7 +718,7 @@ export function tasksScheduledOn(tasks: Task[], day: Date, now: Date = new Date(
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npm run test:unit`
-Expected: PASS (23 tests total)
+Expected: PASS (26 tests total)
 
 - [ ] **Step 5: Commit**
 
@@ -759,7 +790,7 @@ export function nextBest(after: Solution, solutions: Solution[]): Solution | und
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npm run test:unit`
-Expected: PASS (26 tests total)
+Expected: PASS (29 tests total)
 
 - [ ] **Step 5: Commit**
 
@@ -778,7 +809,7 @@ git commit -m "feat: five-step problem solver selection logic"
 
 **Interfaces:**
 - Consumes: Task 2.
-- Produces: `makeSteps(parent, titles, now?) -> Task[]`, `applyContainerRules(parent): void` (clears date/time, re-opens), `cascadeDeleteIds(root, all) -> string[]`. Used by Tasks 11 and 14.
+- Produces: `makeSteps(parent, titles, now?, startOrder?) -> Task[]`, `applyContainerRules(parent): void` (clears date/time, re-opens), `cascadeDeleteIds(root, all) -> string[]`. Used by Tasks 11 and 14.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -837,7 +868,7 @@ Expected: FAIL — module not found.
 ```ts
 import type { Task } from './types';
 
-export function makeSteps(parent: Task, titles: string[], now: Date = new Date()): Task[] {
+export function makeSteps(parent: Task, titles: string[], now: Date = new Date(), startOrder = 0): Task[] {
   return titles
     .map((t) => t.trim())
     .filter((t) => t.length > 0)
@@ -846,7 +877,7 @@ export function makeSteps(parent: Task, titles: string[], now: Date = new Date()
       title,
       priority: parent.priority,
       dateAdded: now.toISOString(),
-      sortOrder: i,
+      sortOrder: startOrder + i, // offset by existing step count when adding to a container
       parentId: parent.id,
     }));
 }
@@ -876,7 +907,7 @@ export function cascadeDeleteIds(root: Task, all: Task[]): string[] {
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `npm run test:unit`
-Expected: PASS (29 tests total)
+Expected: PASS (32 tests total)
 
 - [ ] **Step 5: Commit**
 
@@ -997,7 +1028,7 @@ export function deserialize(json: string): Backup {
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `npm run test:unit`
-Expected: PASS (31 tests total)
+Expected: PASS (34 tests total)
 
 - [ ] **Step 6: Commit**
 
@@ -1244,9 +1275,7 @@ git commit -m "feat: Polish UI copy and base theme"
   {#if $tasks}
     {#each $tasks.filter((t) => isContainer(t, $tasks) && !t.dateCompleted) as parent (parent.id)}
       <section class="sheet">
-        <button class="container-header" onclick={() => onedit(parent, true)}>
-          <h3>{parent.title}</h3>
-        </button>
+        <h3><button class="container-header" onclick={() => onedit(parent, true)}>{parent.title}</button></h3>
         <p class="muted">{strings.master.oneStepHint}</p>
         <ul>
           {#each childrenOf(parent, $tasks).filter((s) => !s.dateCompleted) as step (step.id)}
@@ -1313,9 +1342,18 @@ git commit -m "feat: quick-add with one-tap priority, master list with tappable 
   const tasks = liveQuery(() => db.tasks.toArray());
   let manuallyExpanded = $state<ReadonlySet<Priority>>(new Set());
   let adding = $state(false);
+  // day-dependent deriveds re-run when the app returns to foreground —
+  // otherwise "today" stays frozen at mount across midnight
+  let nowTick = $state(0);
 
-  const active = $derived(activeTasks($tasks ?? []));
-  const doneToday = $derived(doneTodayTasks($tasks ?? []));
+  const active = $derived.by(() => {
+    void nowTick;
+    return activeTasks($tasks ?? []);
+  });
+  const doneToday = $derived.by(() => {
+    void nowTick;
+    return doneTodayTasks($tasks ?? []);
+  });
   const nonEmpty = $derived(new Set(active.map((t) => t.priority)));
 
   const sections: { p: Priority; title: string }[] = [
@@ -1341,6 +1379,8 @@ git commit -m "feat: quick-add with one-tap priority, master list with tappable 
     return !!task.scheduledDate && task.scheduledDate < toISODate(todayStart());
   }
 </script>
+
+<svelte:document onvisibilitychange={() => { if (document.visibilityState === 'visible') nowTick += 1; }} />
 
 <section>
   {#if active.length === 0 && doneToday.length === 0}
@@ -1419,6 +1459,7 @@ git commit -m "feat: daily list with A/B/C collapse, done strip, completion undo
   import type { Priority, Task } from '../models/types';
   import { schedule, unschedule } from '../models/schedule';
   import { cascadeDeleteIds } from '../models/breakdown';
+  import { completeParentIfDone } from '../models/completion';
   import { strings } from '../design/strings';
 
   let { task, container = false, onclose, onbreakdown }: {
@@ -1436,6 +1477,16 @@ git commit -m "feat: daily list with A/B/C collapse, done strip, completion undo
   let categoryName = $state('');
 
   const categories = liveQuery(() => db.categories.toArray());
+
+  // prefill current category name once categories load (otherwise the field
+  // opens empty while a category is set — display would lie)
+  let prefilled = false;
+  $effect(() => {
+    if (!prefilled && $categories) {
+      categoryName = $categories.find((c) => c.id === task.categoryId)?.name ?? '';
+      prefilled = true;
+    }
+  });
 
   async function save() {
     task.title = title.trim() || task.title;
@@ -1465,7 +1516,14 @@ git commit -m "feat: daily list with A/B/C collapse, done strip, completion undo
     const steps = ids.length - 1;
     const message = steps > 0 ? strings.breakdown.confirmDelete(steps) : strings.common.confirmDeletePlain;
     if (!confirm(message)) return; // every hard delete confirms (spec §4)
+    const parentId = task.parentId;
     await db.tasks.bulkDelete(ids);
+    // a deleted step may leave its container with only completed children —
+    // nothing else re-checks on delete, so do it here
+    if (parentId) {
+      const parent = completeParentIfDone(parentId, await db.tasks.toArray());
+      if (parent) await db.tasks.put(parent);
+    }
     onclose();
   }
 </script>
@@ -1562,9 +1620,16 @@ git commit -m "feat: task editor — save-committed edits, category, confirmed c
   import { addDays, todayStart } from '../models/dates';
   import DayView from './DayView.svelte';
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(todayStart(), i));
+  // recompute the 7-day window when the app returns to foreground (midnight guard)
+  let nowTick = $state(0);
+  const days = $derived.by(() => {
+    void nowTick;
+    return Array.from({ length: 7 }, (_, i) => addDays(todayStart(), i));
+  });
   const fmt = new Intl.DateTimeFormat('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
 </script>
+
+<svelte:document onvisibilitychange={() => { if (document.visibilityState === 'visible') nowTick += 1; }} />
 
 {#each days as day (day.toISOString())}
   <section class="sheet">
@@ -1732,6 +1797,7 @@ git commit -m "feat: calendar week list, day view, event editor with end validat
   async function addAsTask() {
     if (!saved) return;
     // chosen solution is meant to be implemented today/tomorrow → priority A
+    // (spec's "or a breakdown": the spawned task's editor offers it immediately)
     await db.tasks.add(newTask(saved.text, 'a'));
     onclose();
   }
@@ -1825,7 +1891,8 @@ git commit -m "feat: five-step wizard with per-solution pros/cons and solution-t
   const hadDate = parent.scheduledDate !== undefined;
 
   async function save() {
-    const made = makeSteps(parent, steps);
+    const existing = await db.tasks.where('parentId').equals(parent.id).count();
+    const made = makeSteps(parent, steps, new Date(), existing);
     if (made.length === 0) return;
     applyContainerRules(parent); // clears date/time, re-opens completed container
     await db.tasks.put(parent);
@@ -1945,7 +2012,7 @@ git commit -m "feat: breakdown wizard with container rules and one-day test prom
     <button onclick={() => (screen = 3)}>{o.next}</button>
   {:else}
     <p>{o.screen3}</p>
-    <QuickAdd onclose={finish} />
+    <QuickAdd defaultToday onclose={finish} />
     <button class="muted" onclick={finish}>{o.start}</button>
   {/if}
 </main>
@@ -1990,8 +2057,12 @@ git commit -m "feat: breakdown wizard with container rules and one-day test prom
   import { strings } from '../design/strings';
 
   const s = strings.settings;
-  const reviewTime = localStorage.getItem('reviewTime') ?? '09:00';
+  let reviewTime = $state(localStorage.getItem('reviewTime') ?? '09:00');
   let message = $state('');
+
+  function saveReviewTime() {
+    localStorage.setItem('reviewTime', reviewTime);
+  }
 
   async function exportJson() {
     const tables = {
@@ -2033,7 +2104,7 @@ git commit -m "feat: breakdown wizard with container rules and one-day test prom
 <main>
   <h1>{s.title}</h1>
   <section class="sheet">
-    <h2>{s.reviewTimeLabel}: {reviewTime}</h2>
+    <h2>{s.reviewTimeLabel}: <input type="time" bind:value={reviewTime} onchange={saveReviewTime} /></h2>
     <p class="muted">{s.reminderHint}</p>
   </section>
   <section class="sheet">
@@ -2129,7 +2200,7 @@ export default app;
 - [ ] **Step 7: Build and run all unit tests**
 
 Run: `npm run build && npm run test:unit`
-Expected: BUILD SUCCEEDED, all PASS (31 tests)
+Expected: BUILD SUCCEEDED, all PASS (34 tests)
 
 - [ ] **Step 8: Commit**
 
@@ -2346,7 +2417,8 @@ test('five-step wizard end-to-end: chosen solution becomes a task', async ({ pag
   await page.getByPlaceholder('Np. nie mogę się zdecydować…').fill('Testowy problem');
   await page.getByRole('button', { name: 'Dalej' }).click();
   await page.getByPlaceholder('Rozwiązanie…').fill('Opcja 1');
-  await page.getByRole('button', { name: 'Dodaj' }).click();
+  // scope to the wizard sheet — DailyList's own "Dodaj" stays in the DOM behind it
+  await page.locator('.sheet').getByRole('button', { name: 'Dodaj' }).click();
   await page.getByRole('button', { name: 'Dalej' }).click(); // step 3 skippable
   await page.getByRole('button', { name: 'Dalej' }).click(); // step 4, default rating
   await page.getByRole('button', { name: 'Dalej' }).click(); // step 5
@@ -2465,7 +2537,8 @@ git commit -m "chore: wrangler for Pages deploys"
 
 ## Self-review results (v2, after external review)
 
-- **Spec coverage:** §3 queries/rendering → Tasks 2, 10. §4 model + container edges + history → Tasks 2, 3, 6, 11, 14, 15 (`History.svelte`). §5 flows incl. week list and solution→task spawn → Tasks 9–15 (week: 12; spawn: 13). §6 collapse → Tasks 3, 10. §7 OS reminder → Task 15 onboarding + Settings re-display. §8 copy → Task 8. §10 backup → Tasks 7, 15 (with confirm). §11 testing → unit Tasks 2–7 (31 tests), e2e Task 17 (4 flows incl. wizard end-to-end and breakdown). §12 structure → matches. §2 storage honesty → Task 15 `persist()` + backup; H2 origin stability → Task 19 before real data, Task 18 explicitly smoke-only.
+- **Spec coverage:** §3 queries/rendering → Tasks 2, 10. §4 model + container edges + history → Tasks 2, 3, 6, 11, 14, 15 (`History.svelte`). §5 flows incl. week list and solution→task spawn → Tasks 9–15 (week: 12; spawn: 13). §6 collapse → Tasks 3, 10. §7 OS reminder → Task 15 onboarding + Settings re-display. §8 copy → Task 8. §10 backup → Tasks 7, 15 (with confirm). §11 testing → unit Tasks 2–7 (34 tests), e2e Task 17 (4 flows incl. wizard end-to-end and breakdown). §12 structure → matches. §2 storage honesty → Task 15 `persist()` + backup; H2 origin stability → Task 19 before real data, Task 18 explicitly smoke-only.
 - **Recorded cuts (mirrored in spec §9):** drag-to-reorder (within-section order = insertion), error banner, problem-forms read view, category clearing.
 - **Placeholder scan:** none — every code step contains complete code. Icon generator pre-verified on this host.
-- **Type consistency:** `onedit(task, container?)` threaded MasterList → App → TaskEditor; `completeWithParent/uncompleteWithParent -> Task[]` match `bulkPut` in Task 10; `candidates` (not full list) feeds `nextBest` in Task 13 step 5; routes `#/, #/lista, #/kalendarz, #/historia, #/ustawienia` consistent between Tasks 8 (link), 15 (router), 17 (e2e). Test counts: 1 (T1) +7 (T2) = 8; +11 (T3) = 19; +4 (T4) = 23; +3 (T5) = 26; +3 (T6) = 29; +2 (T7) = 31.
+- **Type consistency:** `onedit(task, container?)` threaded MasterList → App → TaskEditor; `completeWithParent/uncompleteWithParent -> Task[]` match `bulkPut` in Task 10; `completeParentIfDone(parentId, all, now?)` (Task 3) consumed by Task 11 `remove()`; `candidates` (not full list) feeds `nextBest` in Task 13 step 5; routes `#/, #/lista, #/kalendarz, #/historia, #/ustawienia` consistent between Tasks 8 (link), 15 (router), 17 (e2e). Test counts: 1 (T1) +7 (T2) = 8; +14 (T3) = 22; +4 (T4) = 26; +3 (T5) = 29; +3 (T6) = 32; +2 (T7) = 34.
+- **Review-v2 residuals applied:** R1 (wizard "Dodaj" scoped to `.sheet`), R2 (counts), R3 (`completeParentIfDone` + delete re-check), R4 (`nowTick` visibility guard in DailyList and WeekView). Nits taken: category prefill, `defaultToday` in onboarding, `makeSteps` `startOrder` offset, editable `reviewTime`, breakdown-path comment in Task 13. Nits left with notes: past-day branch of `tasksScheduledOn` is UI-dead in v1 (week view starts today; unit tests keep the rule honest, History covers proof of work); `plan-dnia.pages.dev` may be taken — Task 19 prints the real URL.
