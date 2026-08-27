@@ -30,7 +30,7 @@
   async function finish(chosen: Solution) {
     const formId = crypto.randomUUID();
     await db.problemForms.add({ id: formId, problem, createdAt: new Date().toISOString(), chosenSolutionId: chosen.id });
-    await db.solutions.bulkAdd(solutions.map((x) => ({ ...x, formId })));
+    await db.solutions.bulkAdd($state.snapshot(solutions).map((x) => ({ ...x, formId })));
     saved = chosen;
   }
   async function addAsTask() {
