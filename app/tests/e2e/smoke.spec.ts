@@ -50,11 +50,11 @@ test('scheduled task completes and lands in history', async ({ page }) => {
   await page.getByPlaceholder('Co jest do zrobienia?').fill('Zadanie na dziś');
   await page.getByRole('button', { name: 'B — częściowo pilne' }).click();
   await page.getByText('Zadanie na dziś').click();
-  // let the editor finish mounting — Svelte attaches bind:value listeners just after
-  // the DOM appears, and filling earlier races the mount and silently drops the date
-  await page.waitForTimeout(100);
   await page.getByLabel(/Dzień/).fill(new Date().toLocaleDateString('sv-SE'));
   await page.getByRole('button', { name: 'Zapisz' }).click();
+  // the sheet closes only after save()'s awaited db write resolves — navigating
+  // earlier aborts the in-flight IndexedDB transaction and loses the schedule
+  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
   await page.goto('/');
   // the scheduled task shows in DayView (li) and in the daily list (button) — assert the list entry
   await expect(page.getByRole('button', { name: 'Zadanie na dziś' })).toBeVisible();
