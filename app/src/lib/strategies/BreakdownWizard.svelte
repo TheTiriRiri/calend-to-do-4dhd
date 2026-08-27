@@ -8,12 +8,16 @@
   const s = strings.breakdown;
 
   let steps = $state<string[]>(['']);
+  let emptyHint = $state(false);
   const hadDate = parent.scheduledDate !== undefined;
 
   async function save() {
     const existing = await db.tasks.where('parentId').equals(parent.id).count();
     const made = makeSteps(parent, steps, new Date(), existing);
-    if (made.length === 0) return;
+    if (made.length === 0) {
+      emptyHint = true;
+      return;
+    }
     applyContainerRules(parent); // clears date/time, re-opens completed container
     // parent may be a $state proxy — Dexie needs a plain snapshot (structuredClone)
     await db.tasks.put($state.snapshot(parent));
@@ -31,6 +35,7 @@
   <p>{s.oneDayTest}</p>
   <p class="muted">{s.splitFurtherHint}</p>
   {#if hadDate}<p class="muted">{s.dateCleared}</p>{/if}
+  {#if emptyHint}<p class="muted">{s.noStepsHint}</p>{/if}
   <button onclick={save}>{strings.common.save}</button>
   <button class="muted" onclick={onclose}>{strings.common.cancel}</button>
 </div>

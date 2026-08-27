@@ -43,9 +43,9 @@ npm run test:e2e     # Playwright, tests/e2e/*.spec.ts; builds + previews on :41
 node scripts/make-icons.mjs   # regenerate public/icons/*.png (pure Node, no deps)
 ```
 
-Current state: `check` reports 0 errors and 5 `state_referenced_locally` warnings (TaskEditor, BreakdownWizard) - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 34 unit tests, 4 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history), all green.
+Current state: `check` reports 0 errors and 14 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 48 unit tests, 5 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip), all green.
 
-Playwright: chromium only, viewport 390x844, `reuseExistingServer` outside CI. e2e bypasses onboarding by setting `localStorage.onboarded = '1'`. Modal buttons must be scoped (e.g. `page.locator('.sheet')`) - the underlying screen stays in the DOM behind a sheet and shares button labels like "Dodaj".
+Playwright: chromium + webkit projects, viewport 390x844, `reuseExistingServer` outside CI. e2e bypasses onboarding by setting `localStorage.onboarded = '1'`. Modal buttons must be scoped (e.g. `page.locator('.sheet')`) - the underlying screen stays in the DOM behind a sheet and shares button labels like "Dodaj".
 
 ## Stack
 
@@ -60,7 +60,7 @@ Vite 8 + Svelte 5 (runes) + TypeScript 6 strict, static SPA, no SSR, no routing 
 | `types.ts` | `Task`, `Category`, `CalendarEvent`, `ProblemForm`, `Solution`, `newTask()` |
 | `db.ts` | `AppDB` (Dexie, DB name `calendtodo`, schema **v1**) |
 | `dates.ts` | `startOfDay`, `todayStart`, `addDays`, `sameDay`, `toISODate` |
-| `queries.ts` | `isActive`, `isDoneToday`, `sortedForDailyList`, `priorityRank`, `isContainer`, `childrenOf`, `actionableMasterTasks` |
+| `queries.ts` | `isActive`, `isDoneToday`, `sortedForDailyList`, `priorityRank`, `activeTasks`, `doneTodayTasks`, `topLevelContainers`, `completedHistory`, `isContainer`, `childrenOf`, `actionableMasterTasks` |
 | `collapse.ts` | `isCollapsed` - B/C section collapse rule |
 | `completion.ts` | recursive container complete / un-complete / auto-complete parent |
 | `schedule.ts` | `schedule`, `moveToNextDay`, `unschedule` |
@@ -71,7 +71,7 @@ Vite 8 + Svelte 5 (runes) + TypeScript 6 strict, static SPA, no SSR, no routing 
 
 UI folders mirror the domain: `tasklist/` (QuickAdd, MasterList, DailyList, TaskEditor), `calendar/` (CalendarView, WeekView, DayView, EventEditor), `review/` (DailyReview - the habit entry point, History, Onboarding), `strategies/` (ProblemFormWizard + ProsConsEditor, BreakdownWizard), `settings/` (Settings with JSON export/import), `design/` (strings.ts, theme.css). The spec's `reminder/` folder was never created - reminder setup lives in `review/Onboarding.svelte`.
 
-**Routing:** hash router in [app/src/App.svelte](app/src/App.svelte). `#/` daily review, `#/lista` master list, `#/kalendarz` calendar, `#/historia` history, `#/ustawienia` settings. Wizards and editors are modal sheets, not routes. Onboarding gate: `localStorage.onboarded`.
+**Routing:** hash router in [app/src/App.svelte](app/src/App.svelte). `#/` daily review, `#/lista` master list, `#/kalendarz` calendar, `#/historia` history, `#/ustawienia` settings. Wizards and editors are not routes - they are sheets rendered inside a fixed `.overlay` wrapper (theme.css). Onboarding gate: `localStorage.onboarded`.
 
 **Data-flow rules that are easy to break:**
 - The daily list is a **query, not a table**: `active(today) = !dateCompleted && scheduledDate <= today`. Overdue tasks therefore match every following day - rollover is a query result, never a copy job. `doneToday` is a separate strip.

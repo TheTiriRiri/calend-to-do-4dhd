@@ -2,6 +2,7 @@
   import { db } from '../models/db';
   import { newTask, type Solution } from '../models/types';
   import { bestSolution, nextBest } from '../models/problemSolver';
+  import { canAdvanceWizardStep } from '../models/queries';
   import { strings } from '../design/strings';
   import ProsConsEditor from './ProsConsEditor.svelte';
 
@@ -83,7 +84,7 @@
   {#if !saved}
     <div>
       {#if step < 5}
-        <button onclick={() => (step += 1)} disabled={(step === 1 && !problem.trim()) || (step === 2 && solutions.length === 0)}>{s.next}</button>
+        <button onclick={() => (step += 1)} disabled={!canAdvanceWizardStep(step, problem, solutions.length)}>{s.next}</button>
       {/if}
       <button class="muted" onclick={onclose}>{strings.common.cancel}</button>
     </div>

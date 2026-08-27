@@ -2,11 +2,10 @@
   import { liveQuery } from 'dexie';
   import { db } from '../models/db';
   import type { Priority, Task } from '../models/types';
-  import { activeTasks, doneTodayTasks } from '../models/queries';
+  import { activeTasks, doneTodayTasks, isEarlierThanToday } from '../models/queries';
   import { isCollapsed } from '../models/collapse';
   import { completeWithParent, uncompleteWithParent } from '../models/completion';
   import { moveToNextDay } from '../models/schedule';
-  import { todayStart, toISODate } from '../models/dates';
   import { strings } from '../design/strings';
   import QuickAdd from './QuickAdd.svelte';
 
@@ -47,9 +46,6 @@
     moveToNextDay(task);
     await db.tasks.put(task);
   }
-  function isEarlier(task: Task): boolean {
-    return !!task.scheduledDate && task.scheduledDate < toISODate(todayStart());
-  }
 </script>
 
 <svelte:document onvisibilitychange={() => { if (document.visibilityState === 'visible') nowTick += 1; }} />
@@ -69,9 +65,9 @@
         <ul>
           {#each list as task (task.id)}
             <li>
-              <button aria-label="done" onclick={() => onComplete(task)}>○</button>
+              <button aria-label={strings.dailyList.markDone} onclick={() => onComplete(task)}>○</button>
               <button onclick={() => onedit(task)}>{task.title}</button>
-              {#if isEarlier(task)}<span class="muted">{strings.dailyList.earlierDays}</span>{/if}
+              {#if isEarlierThanToday(task)}<span class="muted">{strings.dailyList.earlierDays}</span>{/if}
               <button class="muted" onclick={() => onMove(task)}>{strings.dailyList.moveToTomorrow}</button>
             </li>
           {/each}
@@ -85,7 +81,7 @@
     <ul class="muted">
       {#each doneToday as task (task.id)}
         <li>
-          <button aria-label="undo" onclick={() => onUncomplete(task)}>✓</button> {task.title}
+          <button aria-label={strings.dailyList.undoDone} onclick={() => onUncomplete(task)}>✓</button> {task.title}
         </li>
       {/each}
     </ul>

@@ -27,17 +27,20 @@
 {#if !onboarded}
   <Onboarding ondone={() => (onboarded = true)} />
 {:else}
-  {#if hash === '#/lista'}
-    <MasterList onedit={(task, container) => (editing = { task, container: container ?? false })} />
-  {:else if hash === '#/kalendarz'}
-    <CalendarView />
-  {:else if hash === '#/historia'}
-    <History />
-  {:else if hash === '#/ustawienia'}
-    <Settings />
-  {:else}
-    <DailyReview />
-  {/if}
+  <svelte:boundary>
+    {#if hash === '#/lista'}
+      <MasterList onedit={(task, container) => (editing = { task, container: container ?? false })} />
+    {:else if hash === '#/kalendarz'}
+      <CalendarView />
+    {:else if hash === '#/historia'}
+      <History />
+    {:else if hash === '#/ustawienia'}
+      <Settings />
+    {:else}
+      <DailyReview />
+    {/if}
+    {#snippet failed()}<p>{strings.common.appError}</p>{/snippet}
+  </svelte:boundary>
 
   <nav class="tabs">
     {#each tabs as tab (tab.route)}
@@ -46,14 +49,18 @@
   </nav>
 
   {#if editing}
-    <TaskEditor
-      task={editing.task}
-      container={editing.container}
-      onclose={() => (editing = null)}
-      onbreakdown={(t) => { breaking = t; editing = null; }}
-    />
+    <div class="overlay">
+      <TaskEditor
+        task={editing.task}
+        container={editing.container}
+        onclose={() => (editing = null)}
+        onbreakdown={(t) => { breaking = t; editing = null; }}
+      />
+    </div>
   {/if}
   {#if breaking}
-    <BreakdownWizard parent={breaking} onclose={() => (breaking = null)} />
+    <div class="overlay">
+      <BreakdownWizard parent={breaking} onclose={() => (breaking = null)} />
+    </div>
   {/if}
 {/if}

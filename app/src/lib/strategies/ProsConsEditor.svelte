@@ -23,7 +23,7 @@
 <section class="sheet">
   <strong>{solution.text}</strong>
   <ul>{#each solution.pros as pro}<li>+ {pro}</li>{/each}</ul>
-  <input bind:value={proText} placeholder="+" /><button onclick={addPro}>{strings.common.add}</button>
+  <input bind:value={proText} placeholder={strings.problemForm.proPlaceholder} /><button onclick={addPro}>{strings.common.add}</button>
   <ul>{#each solution.cons as con}<li>− {con}</li>{/each}</ul>
-  <input bind:value={conText} placeholder="−" /><button onclick={addCon}>{strings.common.add}</button>
+  <input bind:value={conText} placeholder={strings.problemForm.conPlaceholder} /><button onclick={addCon}>{strings.common.add}</button>
 </section>

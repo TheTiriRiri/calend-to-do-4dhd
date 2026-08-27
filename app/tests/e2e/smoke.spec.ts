@@ -56,9 +56,9 @@ test('scheduled task completes and lands in history', async ({ page }) => {
   // earlier aborts the in-flight IndexedDB transaction and loses the schedule
   await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
   await page.goto('/');
-  // the scheduled task shows in DayView (li) and in the daily list (button) — assert the list entry
+  // the review screen shows the task once, on the daily list (DayView is events-only there)
   await expect(page.getByRole('button', { name: 'Zadanie na dziś' })).toBeVisible();
-  await page.getByRole('button', { name: 'done' }).click();
+  await page.getByRole('button', { name: 'oznacz jako zrobione' }).click();
   await expect(page.getByText('Zrobione dziś')).toBeVisible();
   await page.goto('/#/historia');
   await expect(page.getByText('Zadanie na dziś')).toBeVisible();

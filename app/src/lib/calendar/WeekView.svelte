@@ -1,6 +1,9 @@
 <script lang="ts">
+  import type { CalendarEvent } from '../models/types';
   import { addDays, todayStart } from '../models/dates';
   import DayView from './DayView.svelte';
+
+  let { onedit }: { onedit: (event: CalendarEvent) => void } = $props();
 
   // recompute the 7-day window when the app returns to foreground (midnight guard)
   let nowTick = $state(0);
@@ -16,6 +19,6 @@
 {#each days as day (day.toISOString())}
   <section class="sheet">
     <h3>{fmt.format(day)}</h3>
-    <DayView {day} />
+    <DayView {day} {onedit} />
   </section>
 {/each}

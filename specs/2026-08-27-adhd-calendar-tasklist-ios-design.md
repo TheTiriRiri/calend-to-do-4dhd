@@ -194,7 +194,9 @@ archive/history view, never purged automatically.
 **Daily review (habit anchor).** Opens from the OS reminder (§7) or app icon.
 Single screen: today's events + daily list grouped A/B/C + done-today strip, then
 actions: mark done, change priority, move to a specific day, break down. Empty day
-shows neutral, encouraging copy (no streaks, no shame).
+shows neutral, encouraging copy (no streaks, no shame). The day-view block on this
+screen shows calendar events only (`tasks="none"`) — today's tasks render once, on
+the daily list, so nothing appears twice.
 
 **Quick capture.** Source material requires capturing tasks the moment they come
 up. Quick-add is therefore: title field + **three large A/B/C buttons (mandatory

@@ -4,10 +4,14 @@ import { addDays, startOfDay, toISODate } from '../../src/lib/models/dates';
 import {
   activeTasks,
   actionableMasterTasks,
+  canAdvanceWizardStep,
   childrenOf,
+  completedHistory,
   doneTodayTasks,
   isContainer,
+  isEarlierThanToday,
   sortedForDailyList,
+  topLevelContainers,
 } from '../../src/lib/models/queries';
 
 const now = new Date();
@@ -74,5 +78,72 @@ describe('containers', () => {
     const t = newTask('x', 'a');
     t.dateCompleted = now.toISOString();
     expect(actionableMasterTasks([t])).toEqual([]);
+  });
+});
+
+
+describe('topLevelContainers', () => {
+  it('nested breakdown (projekt → etap → krok) yields only the root as a section', () => {
+    const projekt = newTask('projekt', 'b');
+    const etap = newTask('etap', 'b');
+    etap.parentId = projekt.id;
+    const krok = newTask('krok', 'b');
+    krok.parentId = etap.id;
+    const all = [projekt, etap, krok];
+    expect(topLevelContainers(all).map((t) => t.title)).toEqual(['projekt']);
+  });
+
+  it('excludes completed containers and non-containers', () => {
+    const done = newTask('gotowy', 'b');
+    const child = newTask('dziecko', 'b');
+    child.parentId = done.id;
+    done.dateCompleted = now.toISOString();
+    const plain = newTask('zwykłe', 'a');
+    expect(topLevelContainers([done, child, plain])).toEqual([]);
+  });
+});
+
+describe('activeTasks containers', () => {
+  it('excludes containers even when scheduled', () => {
+    const parent = scheduled(0);
+    parent.title = 'kontener';
+    const step = scheduled(0);
+    step.parentId = parent.id;
+    expect(activeTasks([parent, step], now).map((t) => t.id)).toEqual([step.id]);
+  });
+});
+
+describe('completedHistory', () => {
+  it('returns completed tasks, newest completion first', () => {
+    const older = scheduled(5, 3);
+    older.title = 'starsze';
+    const newer = scheduled(5, 1);
+    newer.title = 'nowsze';
+    const open = newTask('otwarte', 'a');
+    expect(completedHistory([older, open, newer]).map((t) => t.title)).toEqual([
+      'nowsze',
+      'starsze',
+    ]);
+  });
+});
+
+describe('isEarlierThanToday', () => {
+  it('true for past scheduledDate, false for today/future/unscheduled', () => {
+    expect(isEarlierThanToday(scheduled(2), now)).toBe(true);
+    expect(isEarlierThanToday(scheduled(0), now)).toBe(false);
+    expect(isEarlierThanToday(scheduled(-1), now)).toBe(false);
+    expect(isEarlierThanToday(newTask('x', 'a'), now)).toBe(false);
+  });
+});
+
+describe('canAdvanceWizardStep', () => {
+  it('step 1 requires a non-blank problem, step 2 requires a solution, others always pass', () => {
+    expect(canAdvanceWizardStep(1, '', 0)).toBe(false);
+    expect(canAdvanceWizardStep(1, '  ', 0)).toBe(false);
+    expect(canAdvanceWizardStep(1, 'problem', 0)).toBe(true);
+    expect(canAdvanceWizardStep(2, 'problem', 0)).toBe(false);
+    expect(canAdvanceWizardStep(2, 'problem', 1)).toBe(true);
+    expect(canAdvanceWizardStep(3, '', 0)).toBe(true);
+    expect(canAdvanceWizardStep(4, '', 0)).toBe(true);
   });
 });

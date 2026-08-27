@@ -1,14 +1,11 @@
 <script lang="ts">
   import { liveQuery } from 'dexie';
   import { db } from '../models/db';
+  import { completedHistory } from '../models/queries';
   import { strings } from '../design/strings';
 
   const tasks = liveQuery(() => db.tasks.toArray());
-  const done = $derived(
-    ($tasks ?? [])
-      .filter((t) => t.dateCompleted)
-      .sort((a, b) => (b.dateCompleted ?? '').localeCompare(a.dateCompleted ?? '')),
-  );
+  const done = $derived(completedHistory($tasks ?? []));
   function dayLabel(iso: string): string {
     return new Date(iso).toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
   }

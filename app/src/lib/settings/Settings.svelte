@@ -19,27 +19,38 @@
       problemForms: await db.problemForms.toArray(),
       solutions: await db.solutions.toArray(),
     };
-    const blob = new Blob([serialize(tables)], { type: 'application/json' });
+    const json = serialize(tables);
+    // prefer the native share sheet (iOS) when it accepts files
+    const file = new File([json], 'plan-dnia-backup.json', { type: 'application/json' });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file] });
+      return;
+    }
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'plan-dnia-backup.json';
     a.click();
-    URL.revokeObjectURL(a.href);
+    // defer revocation — revoking synchronously can cancel the download before it starts
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function importJson(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
+    input.value = ''; // reset so selecting the same file again re-fires change
     if (!confirm(s.confirmImport)) return; // import replaces everything — confirm first
     try {
       const data = deserialize(await file.text());
       await db.transaction('rw', [db.tasks, db.categories, db.events, db.problemForms, db.solutions], async () => {
         await Promise.all([db.tasks.clear(), db.categories.clear(), db.events.clear(), db.problemForms.clear(), db.solutions.clear()]);
-        await db.tasks.bulkAdd(data.tasks);
-        await db.categories.bulkAdd(data.categories);
-        await db.events.bulkAdd(data.events);
-        await db.problemForms.bulkAdd(data.problemForms);
-        await db.solutions.bulkAdd(data.solutions);
+        await db.tasks.bulkAdd($state.snapshot(data.tasks));
+        await db.categories.bulkAdd($state.snapshot(data.categories));
+        await db.events.bulkAdd($state.snapshot(data.events));
+        await db.problemForms.bulkAdd($state.snapshot(data.problemForms));
+        await db.solutions.bulkAdd($state.snapshot(data.solutions));
       });
       message = s.imported;
     } catch {
@@ -58,7 +69,7 @@
     <h2>{s.backupSection}</h2>
     <p class="muted">{s.backupHint}</p>
     <button onclick={exportJson}>{s.export}</button>
-    <label>{s.import} <input type="file" accept="application/json" onchange={importJson} /></label>
+    <label>{s.import} <input type="file" accept=".json,application/json" onchange={importJson} /></label>
     {#if message}<p>{message}</p>{/if}
   </section>
 </main>

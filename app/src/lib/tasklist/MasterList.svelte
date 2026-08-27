@@ -7,6 +7,7 @@
     childrenOf,
     isContainer,
     sortedForDailyList,
+    topLevelContainers,
   } from '../models/queries';
   import { strings } from '../design/strings';
   import QuickAdd from './QuickAdd.svelte';
@@ -19,13 +20,13 @@
 <main>
   <h1>{strings.tabs.master}</h1>
   {#if $tasks}
-    {#each $tasks.filter((t) => isContainer(t, $tasks) && !t.dateCompleted) as parent (parent.id)}
+    {#each topLevelContainers($tasks) as parent (parent.id)}
       <section class="sheet">
         <h3><button class="container-header" onclick={() => onedit(parent, true)}>{parent.title}</button></h3>
         <p class="muted">{strings.master.oneStepHint}</p>
         <ul>
           {#each childrenOf(parent, $tasks).filter((s) => !s.dateCompleted) as step (step.id)}
-            <li><button class="muted" onclick={() => onedit(step)}>{step.title}</button></li>
+            <li><button class="muted" onclick={() => onedit(step, isContainer(step, $tasks))}>{step.title}</button></li>
           {/each}
         </ul>
       </section>

@@ -20,4 +20,38 @@ describe('backup round-trip', () => {
   it('rejects a foreign schema version', () => {
     expect(() => deserialize('{"schema":999}')).toThrow();
   });
+
+  it('rejects malformed JSON', () => {
+    expect(() => deserialize('{not json')).toThrow();
+  });
+
+  it('rejects a backup with a missing table', () => {
+    const tables = { tasks: [], categories: [], events: [], problemForms: [] };
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', ...tables });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects a task with a bad priority', () => {
+    const tables = {
+      tasks: [{ id: 't1', title: 'x', priority: 'z', dateAdded: '2026-08-27T10:00:00' }],
+      categories: [],
+      events: [],
+      problemForms: [],
+      solutions: [],
+    };
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', ...tables });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects a task missing a title', () => {
+    const tables = {
+      tasks: [{ id: 't1', priority: 'a', dateAdded: '2026-08-27T10:00:00' }],
+      categories: [],
+      events: [],
+      problemForms: [],
+      solutions: [],
+    };
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', ...tables });
+    expect(() => deserialize(json)).toThrow();
+  });
 });

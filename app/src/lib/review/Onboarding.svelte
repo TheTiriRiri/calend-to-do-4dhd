@@ -6,6 +6,7 @@
   const o = strings.onboarding;
   let screen = $state(1);
   let reviewTime = $state('09:00');
+  let showForm = $state(true);
 
   function finish() {
     localStorage.setItem('onboarded', '1');
@@ -30,7 +31,8 @@
     <button onclick={() => (screen = 3)}>{o.next}</button>
   {:else}
     <p>{o.screen3}</p>
-    <QuickAdd defaultToday onclose={finish} />
+    <!-- "Anuluj" only hides the form; "Zaczynam" is the sole finish path -->
+    {#if showForm}<QuickAdd defaultToday onclose={() => (showForm = false)} />{/if}
     <button class="muted" onclick={finish}>{o.start}</button>
   {/if}
 </main>
