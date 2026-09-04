@@ -39,7 +39,10 @@
     {:else}
       <DailyReview />
     {/if}
-    {#snippet failed()}<p>{strings.common.appError}</p>{/snippet}
+    {#snippet failed(error, reset)}
+      <p>{strings.common.appError}</p>
+      <button onclick={reset}>{strings.common.retry}</button>
+    {/snippet}
   </svelte:boundary>
 
   <nav class="tabs">

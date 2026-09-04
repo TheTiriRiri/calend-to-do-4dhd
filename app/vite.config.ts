@@ -1,9 +1,16 @@
 /// <reference types="vitest/config" />
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const gitSha = execSync('git rev-parse --short HEAD').toString().trim();
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(gitSha) },
+  // Task 18: cloudflared forwards `Host: <random>.trycloudflare.com`, which
+  // `vite preview` rejects by default (Vite >=6.0.9 host-header allowlist).
+  preview: { allowedHosts: ['.trycloudflare.com'] },
   plugins: [
     svelte(),
     VitePWA({

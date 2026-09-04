@@ -15,7 +15,7 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-button { font: inherit; min-height: 44px; }
+button { font: inherit; min-height: 44px; min-width: 44px; }
 input, textarea { font: inherit; }
 
 .muted { color: var(--muted); }

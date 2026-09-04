@@ -15,6 +15,11 @@
   } = $props();
 
   const priorities: Priority[] = ['a', 'b', 'c'];
+  const addedOn = new Date(task.dateAdded).toLocaleDateString('pl-PL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
   let title = $state(task.title);
   let priority = $state<Priority>(task.priority);
   let day = $state(task.scheduledDate ?? '');
@@ -80,6 +85,7 @@
   {#each priorities as p}
     <button onclick={() => (priority = p)} disabled={priority === p}>{p.toUpperCase()}</button>
   {/each}
+  <p class="muted">{strings.editor.addedSince} {addedOn}</p>
   {#if !container}
     <label>{strings.editor.day} <input type="date" bind:value={day} /></label>
     <label>{strings.editor.time} <input type="time" bind:value={time} /></label>

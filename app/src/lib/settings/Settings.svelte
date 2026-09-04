@@ -23,8 +23,15 @@
     // prefer the native share sheet (iOS) when it accepts files
     const file = new File([json], 'plan-dnia-backup.json', { type: 'application/json' });
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file] });
-      return;
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch (err) {
+        // AbortError = the user dismissed the share sheet — a deliberate
+        // cancel, not a failure; stay silent and don't fall back to a download
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        message = s.shareError;
+      }
     }
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -72,4 +79,5 @@
     <label>{s.import} <input type="file" accept=".json,application/json" onchange={importJson} /></label>
     {#if message}<p>{message}</p>{/if}
   </section>
+  <p class="muted">{s.version}: {__APP_VERSION__}</p>
 </main>

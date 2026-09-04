@@ -6,7 +6,8 @@ export const strings = {
     delete: 'Usuń',
     close: 'Zamknij',
     confirmDeletePlain: 'Usunąć zadanie na stałe?',
-    appError: 'Coś poszło nie tak. Odśwież stronę.',
+    appError: 'Coś poszło nie tak.',
+    retry: 'Spróbuj ponownie',
   },
   tabs: { today: 'Dziś', master: 'Lista główna', calendar: 'Kalendarz', settings: 'Ustawienia' },
   quickAdd: {
@@ -46,6 +47,7 @@ export const strings = {
     breakDown: 'Podziel na kroki',
     category: 'Kategoria',
     categoryPlaceholder: 'np. dom, praca',
+    addedSince: 'Na liście od',
   },
   master: {
     oneStepHint: 'Na listę dzienną bierz jeden krok naraz.',
@@ -97,7 +99,9 @@ export const strings = {
     confirmImport: 'Zastąpić wszystkie dane zawartością kopii?',
     imported: 'Wczytano kopię.',
     importError: 'Nie udało się wczytać pliku.',
+    shareError: 'Nie udało się udostępnić — pobieram plik zamiast tego.',
     reviewTimeLabel: 'Twoja pora przeglądu',
     reminderHint: 'Przypomnienie ustawiasz w systemie: Zegar (budzik), Kalendarz (wydarzenie z alertem) albo Skróty (automatyzacja o porze dnia).',
+    version: 'Wersja',
   },
 } as const;
