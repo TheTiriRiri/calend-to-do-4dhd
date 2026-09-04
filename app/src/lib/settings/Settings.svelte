@@ -1,6 +1,7 @@
 <script lang="ts">
   import { db } from '../models/db';
   import { deserialize, serialize } from '../models/backup';
+  import { toISODate } from '../models/dates';
   import { strings } from '../design/strings';
 
   const s = strings.settings;
@@ -20,8 +21,9 @@
       solutions: await db.solutions.toArray(),
     };
     const json = serialize(tables);
+    const filename = `plan-dnia-backup-${toISODate(new Date())}.json`;
     // prefer the native share sheet (iOS) when it accepts files
-    const file = new File([json], 'plan-dnia-backup.json', { type: 'application/json' });
+    const file = new File([json], filename, { type: 'application/json' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file] });
@@ -37,7 +39,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'plan-dnia-backup.json';
+    a.download = filename;
     a.click();
     // defer revocation — revoking synchronously can cancel the download before it starts
     setTimeout(() => URL.revokeObjectURL(url), 1000);

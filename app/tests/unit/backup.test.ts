@@ -64,6 +64,24 @@ describe('backup round-trip', () => {
     expect(() => deserialize(json)).toThrow();
   });
 
+  it('rejects a task with a wrong-typed scheduledDate (M-4)', () => {
+    const tasks = [{ id: 't1', title: 'x', priority: 'a', dateAdded: '2026-08-27T10:00:00', sortOrder: 0, scheduledDate: 1790000000000 }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks, categories: [], events: [], problemForms: [], solutions: [] });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects a task with a wrong-typed sortOrder (M-4)', () => {
+    const tasks = [{ id: 't1', title: 'x', priority: 'a', dateAdded: '2026-08-27T10:00:00', sortOrder: '0' }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks, categories: [], events: [], problemForms: [], solutions: [] });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects an event with a wrong-typed startsAt (M-4)', () => {
+    const events = [{ id: 'e1', title: 'x', startsAt: 1790000000000 }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks: [], categories: [], events, problemForms: [], solutions: [] });
+    expect(() => deserialize(json)).toThrow();
+  });
+
   it('rejects a task missing a title', () => {
     const tables = {
       tasks: [{ id: 't1', priority: 'a', dateAdded: '2026-08-27T10:00:00' }],

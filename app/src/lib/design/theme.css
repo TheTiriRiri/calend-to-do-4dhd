@@ -36,6 +36,8 @@ nav.tabs a { flex: 1; text-align: center; padding: 12px 0; text-decoration: none
 nav.tabs a.active { color: var(--accent); font-weight: 600; }
 
 main { padding: 16px; padding-bottom: 72px; }
+
+.week-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sheet { padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; margin: 8px 0; }
 
 .overlay {

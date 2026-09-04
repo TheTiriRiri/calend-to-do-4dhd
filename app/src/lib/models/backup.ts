@@ -29,6 +29,12 @@ export function deserialize(json: string): Backup {
   return data;
 }
 
+// present-but-wrong-type rows crash views later (eventsOn/completedHistory sort
+// by these strings) — an absent optional field is fine, a wrong-typed one is not
+function isOptionalString(v: unknown): boolean {
+  return v === undefined || typeof v === 'string';
+}
+
 function validateTables(data: Backup): void {
   for (const key of ['tasks', 'categories', 'events', 'problemForms', 'solutions'] as const) {
     if (!Array.isArray(data[key])) {
@@ -40,13 +46,25 @@ function validateTables(data: Backup): void {
       typeof task?.id !== 'string' ||
       typeof task.title !== 'string' ||
       !['a', 'b', 'c'].includes(task.priority) ||
-      task.dateAdded == null
+      typeof task.dateAdded !== 'string' ||
+      typeof task.sortOrder !== 'number' ||
+      !isOptionalString(task.dateCompleted) ||
+      !isOptionalString(task.scheduledDate) ||
+      !isOptionalString(task.scheduledTime) ||
+      !isOptionalString(task.parentId) ||
+      !isOptionalString(task.categoryId)
     ) {
       throw new Error('backup contains an invalid task row');
     }
   }
   for (const event of data.events) {
-    if (typeof event?.id !== 'string' || typeof event.title !== 'string' || event.startsAt == null) {
+    if (
+      typeof event?.id !== 'string' ||
+      typeof event.title !== 'string' ||
+      typeof event.startsAt !== 'string' ||
+      !isOptionalString(event.endsAt) ||
+      !isOptionalString(event.note)
+    ) {
       throw new Error('backup contains an invalid event row');
     }
   }

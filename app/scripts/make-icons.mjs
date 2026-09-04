@@ -29,20 +29,53 @@ function chunk(type, data) {
   return out;
 }
 
-// brand color #4A6FA5
-function solidPng(size, r = 0x4a, g = 0x6f, b = 0xa5) {
+// Checkmark glyph, drawn as two line segments (distance field + 1px antialiasing
+// against the brand background) — kept inside the maskable-icon 40%-radius safe
+// zone (spec: https://www.w3.org/TR/appmanifest/#dfn-maskable-icons) so the
+// circular OS mask never clips it.
+const GLYPH = [
+  [0.26, 0.54, 0.436, 0.70],
+  [0.436, 0.70, 0.74, 0.30],
+];
+const GLYPH_THICKNESS = 0.09; // fraction of icon size
+
+function segmentDistance(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+  const cx = x1 + t * dx;
+  const cy = y1 + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
+// brand color #4A6FA5 background, white checkmark glyph on top
+function iconPng(size, bg = [0x4a, 0x6f, 0xa5], fg = [0xff, 0xff, 0xff]) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
   ihdr[8] = 8; // bit depth
   ihdr[9] = 2; // color type RGB
-  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(size * 3)]);
-  for (let x = 0; x < size; x++) {
-    row[1 + x * 3] = r;
-    row[1 + x * 3 + 1] = g;
-    row[1 + x * 3 + 2] = b;
+  const half = (GLYPH_THICKNESS * size) / 2;
+  const rows = [];
+  for (let y = 0; y < size; y++) {
+    const row = Buffer.alloc(1 + size * 3);
+    for (let x = 0; x < size; x++) {
+      const px = x + 0.5;
+      const py = y + 0.5;
+      let dist = Infinity;
+      for (const [x1, y1, x2, y2] of GLYPH) {
+        dist = Math.min(dist, segmentDistance(px, py, x1 * size, y1 * size, x2 * size, y2 * size));
+      }
+      // linear 1px antialiasing at the stroke edge, background otherwise
+      const mix = Math.max(0, Math.min(1, half + 0.5 - dist));
+      for (let c = 0; c < 3; c++) {
+        row[1 + x * 3 + c] = Math.round(bg[c] + (fg[c] - bg[c]) * mix);
+      }
+    }
+    rows.push(row);
   }
-  const raw = Buffer.concat(Array.from({ length: size }, () => row));
+  const raw = Buffer.concat(rows);
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),
@@ -54,6 +87,6 @@ function solidPng(size, r = 0x4a, g = 0x6f, b = 0xa5) {
 const outdir = process.argv[2] ?? 'public/icons';
 fs.mkdirSync(outdir, { recursive: true });
 for (const [name, size] of [['icon-192.png', 192], ['icon-512.png', 512], ['apple-touch-icon.png', 180]]) {
-  fs.writeFileSync(path.join(outdir, name), solidPng(size));
+  fs.writeFileSync(path.join(outdir, name), iconPng(size));
   console.log('wrote', name);
 }

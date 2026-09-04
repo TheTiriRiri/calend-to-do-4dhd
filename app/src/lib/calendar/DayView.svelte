@@ -25,7 +25,7 @@
   <p class="muted">{strings.calendar.emptyDay}</p>
 {/if}
 <ul>
-  {#each timeline as entry (entry.kind === 'event' ? entry.event.id : entry.task.id)}
+  {#each timeline as entry (entry.kind + ':' + (entry.kind === 'event' ? entry.event.id : entry.task.id))}
     <li>
       {#if entry.kind === 'event'}
         <button onclick={() => onedit(entry.event)}>

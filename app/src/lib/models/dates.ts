@@ -28,3 +28,11 @@ export function toISODate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${m}-${day}`;
 }
+
+/** 7-day window starting `weekOffset` weeks from the window that contains
+ *  `anchor` (offset 0 = the 7 days from anchor's day on) — the calendar's
+ *  browsable week (I-10: events further out than +6 days were unreachable). */
+export function weekWindow(anchor: Date, weekOffset: number): Date[] {
+  const start = addDays(startOfDay(anchor), weekOffset * 7);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
