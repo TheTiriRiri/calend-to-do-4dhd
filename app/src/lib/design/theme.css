@@ -1,9 +1,35 @@
 @import './fonts.css';
 
+/* Industry design system — steel blue on a light technical ground, zero radius,
+   blueprint frames with registration corners. Values from the v2 handoff. */
 :root {
-  --muted: #6b7280;
-  --accent: #4a6fa5;
-  --bg: #ffffff;
+  --color-bg: #f2f2f3;
+  --color-surface: #e9e9ea;
+  --color-text: #1d1f20;
+  --color-accent: #5980a6;
+  --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
+
+  --color-neutral-300: #d4d4d7;
+  --color-neutral-600: #7a7a7d;
+  --color-neutral-700: #5d5d60;
+
+  --color-accent-200: #d6ebff;
+  --color-accent-300: #b5d9fd;
+  --color-accent-400: #94bce3;
+  --color-accent-500: #749dc4;
+  --color-accent-600: #597ea3;
+  --color-accent-700: #416180;
+  --color-accent-800: #2c455d;
+  --color-accent-900: #1d2d3d;
+
+  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
+
+  --space-2: 6.8px;
+  --space-3: 10.2px;
+  --space-4: 13.6px;
+  --space-6: 20.4px;
+
   color-scheme: light;
 }
 
@@ -11,45 +37,117 @@
 
 body {
   margin: 0;
-  font-family: 'Barlow', -apple-system, system-ui, sans-serif;
-  background: var(--bg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text);
+  background: var(--color-bg);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-h1, h2, h3 { font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 600; }
+h1, h2, h3 { font-family: var(--font-heading); font-weight: 600; line-height: 1.12; margin: 0 0 var(--space-2); }
+h1 { font-size: 34px; line-height: 1; }
+h2 { font-size: 26px; }
+h3 { font-size: 17px; }
 
-button { font: inherit; min-height: 44px; min-width: 44px; }
-input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
+button { min-height: 44px; min-width: 44px; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-.muted { color: var(--muted); }
-.section-collapsed { color: var(--muted); }
-.container-header { background: none; border: none; padding: 0; text-align: left; }
+.muted { color: var(--color-neutral-600); }
 
-nav.tabs {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  background: var(--bg);
-  border-top: 1px solid #e5e7eb;
-  padding-bottom: env(safe-area-inset-bottom);
+/* — blueprint frame: 1px rule plus four registration crosses — */
+.blueprint { position: relative; border: 1px solid var(--color-divider); border-radius: 0; }
+.blueprint > .corner {
+  position: absolute; width: 11px; height: 11px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
-nav.tabs a { flex: 1; text-align: center; padding: 12px 0; text-decoration: none; color: inherit; }
-nav.tabs a.active { color: var(--accent); font-weight: 600; }
+.blueprint > .corner::before, .blueprint > .corner::after { content: ''; position: absolute; background: currentColor; }
+.blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.blueprint > .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+.blueprint > .corner.tl { top: -6px; left: -6px; }
+.blueprint > .corner.tr { top: -6px; right: -6px; }
+.blueprint > .corner.bl { bottom: -6px; left: -6px; }
+.blueprint > .corner.br { bottom: -6px; right: -6px; }
 
-main { padding: 16px; padding-bottom: 72px; }
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--font-heading); font-weight: 600; font-size: 15px; line-height: 1.2;
+  color: var(--color-text); background: transparent;
+  border: 1px solid transparent; border-radius: 0;
+  padding: var(--space-2) var(--space-4); cursor: pointer;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--color-accent); color: var(--color-bg); border-color: var(--color-accent); }
+.btn-primary:hover { background: var(--color-accent-600); }
+.btn-primary:active { background: var(--color-accent-700); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.btn-ghost { color: var(--color-accent); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btn-icon { width: 44px; height: 44px; padding: 0; }
+
+/* A bare tap target: 44px for the finger, no box for the eye. Used by the
+   checkbox and the "→ jutro" affordance, which must stay real buttons so the
+   accessible name survives. */
+.tap {
+  display: inline-grid; place-items: center;
+  background: none; border: none; padding: 0; color: inherit;
+  min-width: 44px; min-height: 44px; cursor: pointer;
+}
+
+/* — tags — */
+.tag { display: inline-flex; align-items: center; font-size: 11px; letter-spacing: 0.02em; padding: 3px 10px; border-radius: 0; }
+.tag-accent { background: var(--color-accent-200); color: var(--color-accent-800); }
+.tag-neutral { background: var(--color-surface); color: var(--color-neutral-700); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* — fields — */
+.input {
+  width: 100%; min-height: 44px; padding: 6px 10px; font-size: 15px;
+  color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: 0;
+}
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+
+/* — the shared time axis (DayView, and later WeekView / History) — */
+.axis { display: grid; grid-template-columns: 56px 1fr; column-gap: 14px; }
+.axis > .axis-time {
+  font-family: var(--font-heading); color: var(--color-neutral-700);
+  padding: 12px 0; border-right: 1px solid var(--color-divider);
+}
+.axis > .axis-body { padding: 12px 0; border-bottom: 1px solid var(--color-divider); font-size: 15px; }
+.axis > .axis-body.axis-tail { border-bottom: none; font-size: 12px; color: var(--color-neutral-600); }
+
+/* — chrome — */
+nav.tabs {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; background: var(--color-bg);
+  border-top: 1px solid var(--color-divider);
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: var(--font-heading); font-size: 15px; letter-spacing: 0.03em;
+}
+nav.tabs a { flex: 1; text-align: center; padding: 12px 0; text-decoration: none; color: var(--color-text); }
+nav.tabs a.active { color: var(--color-accent-700); border-top: 2px solid var(--color-accent); margin-top: -1px; }
+
+main { padding: 8px 20px 0; padding-bottom: 96px; }
 
 .week-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sheet { padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; margin: 8px 0; }
+.section-collapsed { color: var(--color-neutral-700); }
+.container-header { background: none; border: none; padding: 0; text-align: left; }
+
+/* .sheet keeps its name: CLAUDE.md documents `.sheet` / `.overlay .sheet` as the
+   e2e scoping idiom, because the screen behind an overlay shares button labels. */
+.sheet { padding: 14px; border: 1px solid var(--color-divider); border-radius: 0; margin: 8px 0; }
 
 .overlay {
-  position: fixed;
-  inset: 0;
-  overflow: auto;
-  background: var(--bg);
-  z-index: 10;
+  position: fixed; inset: 0; overflow: auto;
+  background: var(--color-bg); z-index: 10;
   padding: 16px;
   padding-top: calc(16px + env(safe-area-inset-top));
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
