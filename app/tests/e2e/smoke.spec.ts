@@ -40,7 +40,10 @@ test('breakdown creates a tappable container with steps', async ({ page }) => {
   await page.getByRole('button', { name: 'Podziel na kroki' }).click();
   await page.getByPlaceholder('Krok…').fill('Pierwszy krok');
   await page.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(page.getByRole('heading', { name: 'Duży projekt' })).toBeVisible();
+  // exact: true — a substring match also hits the wizard's own closing
+  // "Podziel na kroki: Duży projekt" heading; WebKit doesn't retry strict-mode
+  // violations, so that transient overlap fails fast there
+  await expect(page.getByRole('heading', { name: 'Duży projekt', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pierwszy krok', exact: true })).toBeVisible();
 });
 

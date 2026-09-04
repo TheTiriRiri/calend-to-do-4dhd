@@ -39,11 +39,14 @@ npm run build        # production build -> dist/ (includes service worker + mani
 npm run preview      # serve dist/ on :4173
 npm run check        # svelte-check (tsconfig.app.json) + tsc (tsconfig.node.json)
 npm run test:unit    # Vitest, tests/unit/**/*.test.ts, node env, no DB
-npm run test:e2e     # Playwright, tests/e2e/*.spec.ts; builds + previews on :4173 by itself
+npm run test:e2e     # Playwright, tests/e2e/*.spec.ts; builds + previews on :4173 by itself; chromium only unless E2E_WEBKIT=1
+npm run test:e2e:docker   # same suite, chromium+webkit, inside the official Playwright image (needs Docker, not sudo)
 node scripts/make-icons.mjs   # regenerate public/icons/*.png (pure Node, no deps)
 ```
 
-Current state: `check` reports 0 errors and 14 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 55 unit tests, 13 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip + malformed import, event edit/delete, undo/priority-change/move-to-tomorrow, onboarding), all green on chromium. webkit is opt-in (`E2E_WEBKIT=1 npm run test:e2e`) - the host is missing system libraries (`libevent-2.1-7t64`, `libgstreamer-plugins-bad1.0-0`, `libavif16`); install them with `npx playwright install-deps webkit` to run it.
+Current state: `check` reports 0 errors and 14 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 55 unit tests, 13 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip + malformed import, event edit/delete, undo/priority-change/move-to-tomorrow, onboarding), all 26 green on chromium + webkit.
+
+webkit is opt-in on bare `npm run test:e2e` (`E2E_WEBKIT=1` env var) because this host is missing system libraries (`libevent-2.1-7t64`, `libgstreamer-plugins-bad1.0-0`, `libavif16`) that the webkit binary links against - no sudo on this host, so `npx playwright install-deps webkit` is not an option here. `npm run test:e2e:docker` runs the full suite (chromium + webkit) inside the official `mcr.microsoft.com/playwright` image instead - no Dockerfile needed, it is a plain `docker run` against the upstream image with the repo bind-mounted; requires Docker, not sudo. The image tag is pinned to the exact `@playwright/test` version (`v1.62.1-noble`) - bump both together when upgrading Playwright, a mismatch is a silent source of browser/protocol errors.
 
 Playwright: chromium always runs; webkit project only registers when `E2E_WEBKIT` is set (see above). Viewport 390x844, `reuseExistingServer` outside CI. Most e2e specs bypass onboarding by setting `localStorage.onboarded = '1'` in `beforeEach`; `onboarding.spec.ts` is the one flow that runs it for real. Modal buttons must be scoped (e.g. `page.locator('.sheet')`, or `.overlay .sheet` on screens like the calendar that have other `.sheet` elements in the DOM) - the underlying screen stays in the DOM behind a sheet and shares button labels like "Dodaj".
 
