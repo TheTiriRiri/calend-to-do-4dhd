@@ -66,3 +66,16 @@ test('scheduled task completes and lands in history', async ({ page }) => {
   await page.goto('/#/historia');
   await expect(page.getByText('Zadanie na dziś')).toBeVisible();
 });
+
+test('the review screen adds a task straight onto today', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Przegląd dnia' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Dodaj zadanie' }).click();
+  await page.locator('.overlay .sheet').getByPlaceholder('Co jest do zrobienia?').fill('Zadanie z przeglądu');
+  await page.locator('.overlay .sheet').getByRole('button', { name: 'A — dziś/jutro' }).click();
+
+  // lands on the daily list, not just the master list
+  await expect(page.getByRole('button', { name: 'Zadanie z przeglądu' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Najważniejsze' })).toBeVisible();
+});
