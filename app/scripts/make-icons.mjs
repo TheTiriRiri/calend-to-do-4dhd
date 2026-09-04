@@ -1,5 +1,8 @@
 // Generates solid-color PWA icons with pure Node (zlib) — no dependencies.
 // Usage: node scripts/make-icons.mjs [outdir]   (default: public/icons)
+//
+// SUPERSEDED: public/icons/ now holds hand-designed artwork. Running this with
+// the default outdir overwrites it — pass an explicit outdir instead.
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';

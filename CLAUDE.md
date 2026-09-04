@@ -41,7 +41,7 @@ npm run check        # svelte-check (tsconfig.app.json) + tsc (tsconfig.node.jso
 npm run test:unit    # Vitest, tests/unit/**/*.test.ts, node env, no DB
 npm run test:e2e     # Playwright, tests/e2e/*.spec.ts; builds + previews on :4173 by itself; chromium only unless E2E_WEBKIT=1
 npm run test:e2e:docker   # same suite, chromium+webkit, inside the official Playwright image (needs Docker, not sudo)
-node scripts/make-icons.mjs   # regenerate public/icons/*.png (pure Node, no deps)
+node scripts/make-icons.mjs OUT   # placeholder icon generator (pure Node, no deps); superseded by the designed icons in public/icons/ — never run it with the default outdir
 npm run deploy       # build + wrangler pages deploy dist -> https://cal-to-do-kk.pages.dev
 ```
 
