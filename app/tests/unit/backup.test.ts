@@ -17,6 +17,27 @@ describe('backup round-trip', () => {
     expect(restored.categories).toEqual(tables.categories);
   });
 
+  it('round-trips every optional field (I-12: a fixture with only required fields would miss a drop)', () => {
+    const step = newTask('krok', 'b');
+    step.parentId = 'container-1';
+    step.scheduledDate = '2026-08-27';
+    step.scheduledTime = '09:30';
+    step.dateCompleted = '2026-08-27T09:00:00.000Z';
+    step.categoryId = 'c1';
+    const tables = {
+      tasks: [step],
+      categories: [{ id: 'c1', name: 'dom' }],
+      events: [{ id: 'e1', title: 'wizyta', startsAt: '2026-08-27T10:00:00.000Z', endsAt: '2026-08-27T11:00:00.000Z', note: 'notatka' }],
+      problemForms: [{ id: 'f1', problem: 'problem', createdAt: '2026-08-27T08:00:00.000Z', chosenSolutionId: 's1' }],
+      solutions: [{ id: 's1', formId: 'f1', text: 'rozwiązanie', pros: ['+'], cons: ['-'], rating: 8 }],
+    };
+    const restored = deserialize(serialize(tables, new Date('2026-08-27T10:00:00')));
+    expect(restored.tasks).toEqual(tables.tasks);
+    expect(restored.events).toEqual(tables.events);
+    expect(restored.problemForms).toEqual(tables.problemForms);
+    expect(restored.solutions).toEqual(tables.solutions);
+  });
+
   it('rejects a foreign schema version', () => {
     expect(() => deserialize('{"schema":999}')).toThrow();
   });

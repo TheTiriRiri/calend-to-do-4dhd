@@ -26,6 +26,10 @@
     return doneTodayTasks($tasks ?? []);
   });
   const nonEmpty = $derived(new Set(active.map((t) => t.priority)));
+  const now = $derived.by(() => {
+    void nowTick;
+    return new Date();
+  });
 
   const sections: { p: Priority; title: string }[] = [
     { p: 'a', title: strings.dailyList.sectionA },
@@ -51,40 +55,42 @@
 <svelte:document onvisibilitychange={() => { if (document.visibilityState === 'visible') nowTick += 1; }} />
 
 <section>
-  {#if active.length === 0 && doneToday.length === 0}
-    <p class="muted">{strings.dailyList.emptyState}</p>
-  {/if}
-
-  {#each sections as { p, title } (p)}
-    {@const list = active.filter((t) => t.priority === p)}
-    {#if list.length > 0}
-      {#if isCollapsed(p, nonEmpty, manuallyExpanded)}
-        <button class="section-collapsed" onclick={() => expand(p)}>{title} ({list.length}) ▸</button>
-      {:else}
-        <h3>{title}</h3>
-        <ul>
-          {#each list as task (task.id)}
-            <li>
-              <button aria-label={strings.dailyList.markDone} onclick={() => onComplete(task)}>○</button>
-              <button onclick={() => onedit(task)}>{task.title}</button>
-              {#if isEarlierThanToday(task)}<span class="muted">{strings.dailyList.earlierDays}</span>{/if}
-              <button class="muted" onclick={() => onMove(task)}>{strings.dailyList.moveToTomorrow}</button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
+  {#if $tasks}
+    {#if active.length === 0 && doneToday.length === 0}
+      <p class="muted">{strings.dailyList.emptyState}</p>
     {/if}
-  {/each}
 
-  {#if doneToday.length > 0}
-    <h3 class="muted">{strings.dailyList.doneToday}</h3>
-    <ul class="muted">
-      {#each doneToday as task (task.id)}
-        <li>
-          <button aria-label={strings.dailyList.undoDone} onclick={() => onUncomplete(task)}>✓</button> {task.title}
-        </li>
-      {/each}
-    </ul>
+    {#each sections as { p, title } (p)}
+      {@const list = active.filter((t) => t.priority === p)}
+      {#if list.length > 0}
+        {#if isCollapsed(p, nonEmpty, manuallyExpanded)}
+          <button class="section-collapsed" onclick={() => expand(p)}>{title} ({list.length}) ▸</button>
+        {:else}
+          <h3>{title}</h3>
+          <ul>
+            {#each list as task (task.id)}
+              <li>
+                <button aria-label={strings.dailyList.markDone} onclick={() => onComplete(task)}>○</button>
+                <button onclick={() => onedit(task)}>{task.title}</button>
+                {#if isEarlierThanToday(task, now)}<span class="muted">{strings.dailyList.earlierDays}</span>{/if}
+                <button class="muted" onclick={() => onMove(task)}>{strings.dailyList.moveToTomorrow}</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {/if}
+    {/each}
+
+    {#if doneToday.length > 0}
+      <h3 class="muted">{strings.dailyList.doneToday}</h3>
+      <ul class="muted">
+        {#each doneToday as task (task.id)}
+          <li>
+            <button aria-label={strings.dailyList.undoDone} onclick={() => onUncomplete(task)}>✓</button> {task.title}
+          </li>
+        {/each}
+      </ul>
+    {/if}
   {/if}
 
   <button onclick={() => (adding = true)}>{strings.common.add}</button>

@@ -45,3 +45,32 @@ test('backup round trip: exported JSON contains the task, import replaces data',
   await expect(page.getByText('Zadanie z kopii')).toBeVisible();
   await expect(page.getByText('Zadanie do kopii')).toBeHidden();
 });
+
+test('malformed import shows an error and leaves existing data intact', async ({ page }) => {
+  await page.goto('/#/lista');
+  await page.getByRole('button', { name: 'Dodaj' }).click();
+  await page.getByPlaceholder('Co jest do zrobienia?').fill('Zadanie sprzed importu');
+  await page.getByRole('button', { name: 'A — dziś/jutro' }).click();
+  await expect(page.getByText('Zadanie sprzed importu')).toBeVisible();
+
+  await page.goto('/#/ustawienia');
+  const malformed = {
+    schema: 1,
+    exportedAt: '',
+    tasks: [{ id: 't1' }], // missing title/priority/dateAdded — fails validateTables
+    categories: [],
+    events: [],
+    problemForms: [],
+    solutions: [],
+  };
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'malformed.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(malformed)),
+  });
+  await expect(page.getByText('Nie udało się wczytać pliku.')).toBeVisible();
+
+  await page.goto('/#/lista');
+  await expect(page.getByText('Zadanie sprzed importu')).toBeVisible();
+});

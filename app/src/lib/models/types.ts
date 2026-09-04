@@ -48,6 +48,6 @@ export function newTask(title: string, priority: Priority): Task {
     title,
     priority,
     dateAdded: new Date().toISOString(),
-    sortOrder: 0,
+    sortOrder: Date.now(), // monotonic across creations -> insertion order within a section
   };
 }

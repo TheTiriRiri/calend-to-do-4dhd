@@ -37,16 +37,22 @@ export function uncompleteWithParent(task: Task, all: Task[]): Task[] {
   return changed;
 }
 
-/** After a step is DELETED, its container may have only completed children left
- *  (nothing else re-checks on delete). Completes it and returns it, or returns
- *  undefined. Zero remaining children → parent becomes a plain task (untouched). */
-export function completeParentIfDone(parentId: string, all: Task[], now: Date = new Date()): Task | undefined {
-  const parent = all.find((t) => t.id === parentId);
-  if (!parent || parent.dateCompleted) return undefined;
-  const children = all.filter((t) => t.parentId === parentId);
-  if (children.length > 0 && children.every((c) => c.dateCompleted)) {
+/** After a step is DELETED, its ancestor chain may have only completed children
+ *  left (nothing else re-checks on delete). Walks up exactly like
+ *  completeWithParent, completing every container whose remaining children are
+ *  all done. Zero remaining children → parent stays open (untouched). Returns
+ *  every mutated task. */
+export function completeParentIfDone(parentId: string, all: Task[], now: Date = new Date()): Task[] {
+  const changed: Task[] = [];
+  let currentId: string | undefined = parentId;
+  while (currentId) {
+    const parent: Task | undefined = all.find((t) => t.id === currentId);
+    if (!parent || parent.dateCompleted) break;
+    const children = all.filter((t) => t.parentId === parent.id);
+    if (children.length === 0 || !children.every((c) => c.dateCompleted)) break;
     parent.dateCompleted = now.toISOString();
-    return parent;
+    changed.push(parent);
+    currentId = parent.parentId;
   }
-  return undefined;
+  return changed;
 }

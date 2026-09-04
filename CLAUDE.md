@@ -43,9 +43,9 @@ npm run test:e2e     # Playwright, tests/e2e/*.spec.ts; builds + previews on :41
 node scripts/make-icons.mjs   # regenerate public/icons/*.png (pure Node, no deps)
 ```
 
-Current state: `check` reports 0 errors and 14 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 48 unit tests, 5 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip), all green.
+Current state: `check` reports 0 errors and 14 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 55 unit tests, 13 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip + malformed import, event edit/delete, undo/priority-change/move-to-tomorrow, onboarding), all green on chromium. webkit is opt-in (`E2E_WEBKIT=1 npm run test:e2e`) - the host is missing system libraries (`libevent-2.1-7t64`, `libgstreamer-plugins-bad1.0-0`, `libavif16`); install them with `npx playwright install-deps webkit` to run it.
 
-Playwright: chromium + webkit projects, viewport 390x844, `reuseExistingServer` outside CI. e2e bypasses onboarding by setting `localStorage.onboarded = '1'`. Modal buttons must be scoped (e.g. `page.locator('.sheet')`) - the underlying screen stays in the DOM behind a sheet and shares button labels like "Dodaj".
+Playwright: chromium always runs; webkit project only registers when `E2E_WEBKIT` is set (see above). Viewport 390x844, `reuseExistingServer` outside CI. Most e2e specs bypass onboarding by setting `localStorage.onboarded = '1'` in `beforeEach`; `onboarding.spec.ts` is the one flow that runs it for real. Modal buttons must be scoped (e.g. `page.locator('.sheet')`, or `.overlay .sheet` on screens like the calendar that have other `.sheet` elements in the DOM) - the underlying screen stays in the DOM behind a sheet and shares button labels like "Dodaj".
 
 ## Stack
 
@@ -60,7 +60,7 @@ Vite 8 + Svelte 5 (runes) + TypeScript 6 strict, static SPA, no SSR, no routing 
 | `types.ts` | `Task`, `Category`, `CalendarEvent`, `ProblemForm`, `Solution`, `newTask()` |
 | `db.ts` | `AppDB` (Dexie, DB name `calendtodo`, schema **v1**) |
 | `dates.ts` | `startOfDay`, `todayStart`, `addDays`, `sameDay`, `toISODate` |
-| `queries.ts` | `isActive`, `isDoneToday`, `sortedForDailyList`, `priorityRank`, `activeTasks`, `doneTodayTasks`, `topLevelContainers`, `completedHistory`, `isContainer`, `childrenOf`, `actionableMasterTasks` |
+| `queries.ts` | `isActive`, `isDoneToday`, `sortedForDailyList`, `priorityRank`, `activeTasks`, `doneTodayTasks`, `topLevelContainers`, `completedHistory`, `isContainer`, `childrenOf`, `containerDescendants`, `masterListSections` |
 | `collapse.ts` | `isCollapsed` - B/C section collapse rule |
 | `completion.ts` | recursive container complete / un-complete / auto-complete parent |
 | `schedule.ts` | `schedule`, `moveToNextDay`, `unschedule` |

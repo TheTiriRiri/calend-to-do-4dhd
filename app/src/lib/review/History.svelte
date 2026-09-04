@@ -13,10 +13,12 @@
 
 <main>
   <h1>{strings.history.title}</h1>
-  <p class="muted">{strings.history.subtitle}: {done.length}</p>
-  <ul>
-    {#each done as task (task.id)}
-      <li>✓ {task.title} <span class="muted">{dayLabel(task.dateCompleted ?? '')}</span></li>
-    {/each}
-  </ul>
+  {#if $tasks}
+    <p class="muted">{strings.history.subtitle}: {done.length}</p>
+    <ul>
+      {#each done as task (task.id)}
+        <li>✓ {task.title} <span class="muted">{dayLabel(task.dateCompleted ?? '')}</span></li>
+      {/each}
+    </ul>
+  {/if}
 </main>

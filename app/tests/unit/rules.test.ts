@@ -86,15 +86,27 @@ describe('completeParentIfDone (container re-check after step deletion)', () => 
   it('completes a container whose remaining children are all done', () => {
     const parent = newTask('p', 'b');
     const done = newTask('d', 'b'); done.parentId = parent.id; done.dateCompleted = now.toISOString();
-    expect(completeParentIfDone(parent.id, [parent, done], now)).toEqual(parent);
+    expect(completeParentIfDone(parent.id, [parent, done], now)).toEqual([parent]);
     expect(parent.dateCompleted).toBe(now.toISOString());
   });
 
   it('leaves a container with open or zero children alone', () => {
     const parent = newTask('p', 'b');
     const open = newTask('o', 'b'); open.parentId = parent.id;
-    expect(completeParentIfDone(parent.id, [parent, open], now)).toBeUndefined();
-    expect(completeParentIfDone(parent.id, [parent], now)).toBeUndefined();
+    expect(completeParentIfDone(parent.id, [parent, open], now)).toEqual([]);
+    expect(completeParentIfDone(parent.id, [parent], now)).toEqual([]);
+  });
+
+  it('walks up two levels (I-3): grandparent completes when its last grandchild is deleted', () => {
+    // projekt -> etap -> [krok1 done, krok2 open]; delete krok2, re-check from etap
+    const projekt = newTask('projekt', 'b');
+    const etap = newTask('etap', 'b'); etap.parentId = projekt.id;
+    const krok1 = newTask('krok1', 'b'); krok1.parentId = etap.id; krok1.dateCompleted = now.toISOString();
+    const all = [projekt, etap, krok1]; // krok2 already deleted from the array
+    const changed = completeParentIfDone(etap.id, all, now);
+    expect(etap.dateCompleted).toBe(now.toISOString());
+    expect(projekt.dateCompleted).toBe(now.toISOString());
+    expect(changed).toEqual([etap, projekt]);
   });
 });
 

@@ -3,13 +3,14 @@ import { newTask, type Task } from '../../src/lib/models/types';
 import { addDays, startOfDay, toISODate } from '../../src/lib/models/dates';
 import {
   activeTasks,
-  actionableMasterTasks,
   canAdvanceWizardStep,
   childrenOf,
   completedHistory,
+  containerDescendants,
   doneTodayTasks,
   isContainer,
   isEarlierThanToday,
+  masterListSections,
   sortedForDailyList,
   topLevelContainers,
 } from '../../src/lib/models/queries';
@@ -49,6 +50,14 @@ describe('doneTodayTasks', () => {
     expect(doneTodayTasks([scheduled(5, 0)], now)).toHaveLength(1);
     expect(doneTodayTasks([scheduled(5, 1)], now)).toEqual([]);
   });
+
+  it('excludes an auto-completed container even though it is done today (C-1)', () => {
+    const parent = scheduled(5, 0);
+    parent.title = 'kontener';
+    const step = scheduled(5, 0);
+    step.parentId = parent.id;
+    expect(doneTodayTasks([parent, step], now).map((t) => t.id)).toEqual([step.id]);
+  });
 });
 
 describe('sortedForDailyList', () => {
@@ -62,7 +71,7 @@ describe('sortedForDailyList', () => {
 });
 
 describe('containers', () => {
-  it('excludes containers from the actionable master list; steps stay', () => {
+  it('identifies containers vs steps; childrenOf returns the direct children', () => {
     const parent = newTask('projekt', 'b');
     const step = newTask('krok', 'b');
     step.parentId = parent.id;
@@ -70,14 +79,23 @@ describe('containers', () => {
     const all = [parent, step, plain];
     expect(isContainer(parent, all)).toBe(true);
     expect(isContainer(step, all)).toBe(false);
-    expect(actionableMasterTasks(all).map((t) => t.title)).toEqual(['krok', 'zwykłe']);
     expect(childrenOf(parent, all)).toEqual([step]);
   });
 
-  it('excludes completed tasks from actionable master list', () => {
-    const t = newTask('x', 'a');
-    t.dateCompleted = now.toISOString();
-    expect(actionableMasterTasks([t])).toEqual([]);
+  it('childrenOf returns steps in insertion (sortOrder) order, not table order (I-2)', () => {
+    const parent = newTask('projekt', 'b');
+    const s2 = newTask('krok2', 'b'); s2.parentId = parent.id; s2.sortOrder = 2;
+    const s1 = newTask('krok1', 'b'); s1.parentId = parent.id; s1.sortOrder = 1;
+    const all = [parent, s2, s1];
+    expect(childrenOf(parent, all).map((t) => t.title)).toEqual(['krok1', 'krok2']);
+  });
+});
+
+describe('newTask sortOrder (I-2)', () => {
+  it('assigns an increasing sortOrder so later insertions sort last', () => {
+    const first = newTask('pierwsze', 'a');
+    const second = newTask('drugie', 'a');
+    expect(second.sortOrder).toBeGreaterThanOrEqual(first.sortOrder);
   });
 });
 
@@ -100,6 +118,43 @@ describe('topLevelContainers', () => {
     done.dateCompleted = now.toISOString();
     const plain = newTask('zwykłe', 'a');
     expect(topLevelContainers([done, child, plain])).toEqual([]);
+  });
+});
+
+describe('containerDescendants', () => {
+  it('flattens nested steps depth-first, excluding completed ones', () => {
+    const projekt = newTask('projekt', 'b');
+    const etap = newTask('etap', 'b'); etap.parentId = projekt.id; etap.sortOrder = 0;
+    const krok = newTask('krok', 'b'); krok.parentId = etap.id;
+    const inny = newTask('inny etap', 'b'); inny.parentId = projekt.id; inny.sortOrder = 1;
+    const done = newTask('zrobiony', 'b'); done.parentId = projekt.id; done.dateCompleted = now.toISOString();
+    const all = [projekt, etap, krok, inny, done];
+    expect(containerDescendants(projekt, all).map((t) => t.title)).toEqual(['etap', 'krok', 'inny etap']);
+  });
+});
+
+describe('masterListSections (I-1: every open task appears exactly once)', () => {
+  it('nested steps render under the top-level container, not as loose rows', () => {
+    const projekt = newTask('projekt', 'b');
+    const etap = newTask('etap', 'b'); etap.parentId = projekt.id;
+    const krok = newTask('krok', 'b'); krok.parentId = etap.id;
+    const luzne = newTask('luźne', 'a');
+    const all = [projekt, etap, krok, luzne];
+    const { sections, loose } = masterListSections(all);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].container.title).toBe('projekt');
+    expect(sections[0].steps.map((t) => t.title)).toEqual(['etap', 'krok']);
+    expect(loose.map((t) => t.title)).toEqual(['luźne']);
+  });
+
+  it('excludes completed containers/steps and completed loose tasks', () => {
+    const doneContainer = newTask('gotowy', 'b');
+    const doneChild = newTask('dziecko', 'b'); doneChild.parentId = doneContainer.id;
+    doneContainer.dateCompleted = now.toISOString();
+    const doneLoose = newTask('zrobione', 'a'); doneLoose.dateCompleted = now.toISOString();
+    const { sections, loose } = masterListSections([doneContainer, doneChild, doneLoose]);
+    expect(sections).toEqual([]);
+    expect(loose).toEqual([]);
   });
 });
 

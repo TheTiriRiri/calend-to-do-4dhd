@@ -67,8 +67,8 @@
     // a deleted step may leave its container with only completed children —
     // nothing else re-checks on delete, so do it here
     if (parentId) {
-      const parent = completeParentIfDone(parentId, await db.tasks.toArray());
-      if (parent) await db.tasks.put(parent);
+      const completed = completeParentIfDone(parentId, await db.tasks.toArray());
+      if (completed.length > 0) await db.tasks.bulkPut(completed);
     }
     onclose();
   }

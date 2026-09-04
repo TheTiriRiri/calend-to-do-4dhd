@@ -26,7 +26,10 @@ export function activeTasks(tasks: Task[], now: Date = new Date()): Task[] {
 }
 
 export function doneTodayTasks(tasks: Task[], now: Date = new Date()): Task[] {
-  return tasks.filter((t) => isDoneToday(t, now));
+  const containers = containerIdSet(tasks);
+  // a container's completion is derived from its steps and needs no undo of its
+  // own (C-1) — showing it here would let undo re-open it with every step still done
+  return tasks.filter((t) => isDoneToday(t, now) && !containers.has(t.id));
 }
 
 function containerIdSet(tasks: Task[]): Set<string> {
@@ -40,7 +43,7 @@ export function isContainer(t: Task, all: Task[]): boolean {
 }
 
 export function childrenOf(parent: Task, all: Task[]): Task[] {
-  return all.filter((t) => t.parentId === parent.id);
+  return sortedForDailyList(all.filter((t) => t.parentId === parent.id));
 }
 
 /** Master-list sections: containers at the root of the breakdown tree (spec §4 allows nesting). */
@@ -49,9 +52,32 @@ export function topLevelContainers(tasks: Task[]): Task[] {
   return tasks.filter((t) => containers.has(t.id) && !t.parentId && !t.dateCompleted);
 }
 
-export function actionableMasterTasks(tasks: Task[]): Task[] {
+/** Steps (and grandchildren, ...) of any depth under root, open ones only, in
+ *  render order — depth-first so a step's own children follow it immediately.
+ *  The master list shows this flattened at one indent level under the container
+ *  header rather than mirroring the breakdown depth (v1 simplicity). */
+export function containerDescendants(root: Task, all: Task[]): Task[] {
+  const open = childrenOf(root, all).filter((t) => !t.dateCompleted);
+  return open.flatMap((child) => [child, ...containerDescendants(child, all)]);
+}
+
+export interface MasterListSection {
+  container: Task;
+  steps: Task[];
+}
+
+/** Master-list partition (I-1 fix): every open task appears exactly once, either
+ *  as a step under its container's section or as a loose top-level task. */
+export function masterListSections(tasks: Task[]): { sections: MasterListSection[]; loose: Task[] } {
   const containers = containerIdSet(tasks);
-  return tasks.filter((t) => !containers.has(t.id) && !t.dateCompleted);
+  const sections = topLevelContainers(tasks).map((container) => ({
+    container,
+    steps: containerDescendants(container, tasks),
+  }));
+  const loose = sortedForDailyList(
+    tasks.filter((t) => !containers.has(t.id) && !t.parentId && !t.dateCompleted),
+  );
+  return { sections, loose };
 }
 
 /** Completed tasks, newest completion first (history view). */

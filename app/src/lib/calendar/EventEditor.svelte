@@ -16,7 +16,9 @@
   let endTime = $state(event?.endsAt ? localTime(event.endsAt) : '13:00');
   let note = $state(event?.note ?? '');
 
-  const invalid = $derived(!title.trim() || (hasEnd && !eventTimesValid(time, endTime)));
+  const invalid = $derived(
+    !title.trim() || !day || !time || (hasEnd && (!endTime || !eventTimesValid(time, endTime))),
+  );
 
   async function save() {
     if (invalid) return;

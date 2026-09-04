@@ -2,13 +2,7 @@
   import { liveQuery } from 'dexie';
   import { db } from '../models/db';
   import type { Task } from '../models/types';
-  import {
-    actionableMasterTasks,
-    childrenOf,
-    isContainer,
-    sortedForDailyList,
-    topLevelContainers,
-  } from '../models/queries';
+  import { isContainer, masterListSections } from '../models/queries';
   import { strings } from '../design/strings';
   import QuickAdd from './QuickAdd.svelte';
 
@@ -20,19 +14,20 @@
 <main>
   <h1>{strings.tabs.master}</h1>
   {#if $tasks}
-    {#each topLevelContainers($tasks) as parent (parent.id)}
+    {@const { sections, loose } = masterListSections($tasks)}
+    {#each sections as { container, steps } (container.id)}
       <section class="sheet">
-        <h3><button class="container-header" onclick={() => onedit(parent, true)}>{parent.title}</button></h3>
+        <h3><button class="container-header" onclick={() => onedit(container, true)}>{container.title}</button></h3>
         <p class="muted">{strings.master.oneStepHint}</p>
         <ul>
-          {#each childrenOf(parent, $tasks).filter((s) => !s.dateCompleted) as step (step.id)}
+          {#each steps as step (step.id)}
             <li><button class="muted" onclick={() => onedit(step, isContainer(step, $tasks))}>{step.title}</button></li>
           {/each}
         </ul>
       </section>
     {/each}
     <ul>
-      {#each sortedForDailyList(actionableMasterTasks($tasks)) as task (task.id)}
+      {#each loose as task (task.id)}
         <li>
           <button onclick={() => onedit(task)}>
             <strong>{task.priority.toUpperCase()}</strong> {task.title}
