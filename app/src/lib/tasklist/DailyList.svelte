@@ -105,7 +105,7 @@
         {#each doneToday as task, i (task.id)}
           <li>
             {#if i > 0}<span aria-hidden="true">{strings.dailyList.doneListSeparator}</span>{/if}
-            <button class="undo" aria-label={strings.dailyList.undoDone} onclick={() => onUncomplete(task)}>{task.title}</button>
+            <button class="undo" aria-label={`${strings.dailyList.undoDone} ${task.title}`} onclick={() => onUncomplete(task)}>{task.title}</button>
           </li>
         {/each}
       </ul>
@@ -141,7 +141,10 @@
 
   /* no :empty rule — Svelte's {#each} leaves an anchor node inside, and an
      empty flex div costs no height here anyway */
-  .tiles { display: flex; gap: 8px; }
+  /* margin-bottom clears the done-today line's .undo negative top margin below,
+     so the two no longer overlap (vertical margin on .done-label itself would be
+     inert: it stays display: inline, and inline boxes ignore vertical margin) */
+  .tiles { display: flex; gap: 8px; margin-bottom: 12px; }
   .tile {
     flex: 1; display: flex; align-items: center; gap: 8px;
     padding: 10px 12px; min-height: 44px;

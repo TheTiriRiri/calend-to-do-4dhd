@@ -73,11 +73,12 @@
 
 <style>
   /* one column, actions pinned to the bottom above the tabbar. body already
-     carries padding-top: safe-area, so a bare 100dvh would always overflow by
-     that much and the page would scroll even when short */
+     carries both padding-top and padding-bottom: safe-area, so a bare 100dvh
+     (or one subtracting only the top inset) would overflow the document by
+     the missing inset and the page would scroll even when short */
   .review {
     display: flex; flex-direction: column; gap: 18px;
-    min-height: calc(100dvh - env(safe-area-inset-top));
+    min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
   header { display: flex; justify-content: space-between; align-items: baseline; }
   header h1 { margin: 0; }

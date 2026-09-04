@@ -23,7 +23,10 @@ test('undo restores a completed task to its section', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'oznacz jako zrobione' }).click();
   await expect(page.getByText('Zrobione dziś')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Zadanie do cofnięcia' })).toBeHidden();
+  // exact: the undo button's accessible name is now "cofnij <title>" (a11y fix:
+  // it must announce the task name, not just "cofnij") and would otherwise also
+  // match this substring-based locator while it sits visible in the done list
+  await expect(page.getByRole('button', { name: 'Zadanie do cofnięcia', exact: true })).toBeHidden();
 
   await page.getByRole('button', { name: 'cofnij' }).click();
   await expect(page.getByRole('button', { name: 'Zadanie do cofnięcia' })).toBeVisible();

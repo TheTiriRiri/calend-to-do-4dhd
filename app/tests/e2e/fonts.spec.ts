@@ -32,7 +32,8 @@ test('font files are in the service worker precache', async ({ page, request }) 
   await page.goto('/');
   const sw = await request.get('/sw.js');
   expect(sw.ok()).toBe(true);
-  // generateSW inlines the precache manifest; woff2 entries must be in it or the
-  // first offline launch falls back to system-ui
-  expect(await sw.text()).toContain('.woff2');
+  // generateSW inlines the precache manifest; all ten woff2 files (public/fonts/)
+  // must be in it, or a globPatterns regression dropping a subset falls back to
+  // system-ui offline for the missing weights/subsets without failing this test
+  expect((await sw.text()).match(/\.woff2/g) ?? []).toHaveLength(10);
 });
