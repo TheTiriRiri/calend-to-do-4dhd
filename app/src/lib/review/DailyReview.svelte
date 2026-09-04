@@ -26,7 +26,7 @@
 <main>
   <h1>{strings.review.title}</h1>
   <!-- tasks="none": the daily list below already shows today's tasks (spec §5) -->
-  <DayView day={today} tasks="none" onedit={(e) => (editingEvent = e)} />
+  <DayView day={today} tasks="none" tail="restFree" onedit={(e) => (editingEvent = e)} />
   <DailyList onedit={(t) => (editing = t)} />
   <button class="muted" onclick={() => (problemForm = true)}>{strings.review.problemFormEntry}</button>
 

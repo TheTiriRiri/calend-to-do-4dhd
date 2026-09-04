@@ -55,3 +55,24 @@ test('week navigation reveals events beyond the initial 7-day window (I-10)', as
   await page.getByRole('button', { name: 'Poprzedni tydzień' }).click();
   await expect(page.getByRole('button', { name: 'Wydarzenie za 10 dni' })).toBeHidden();
 });
+
+test('the rest-of-day line belongs to the review screen only, never to the week view', async ({ page }) => {
+  // every test starts on an empty DB; with no event today the tail row prints
+  // emptyDay, not restFree — so create one first
+  await page.goto('/#/kalendarz');
+  await page.getByRole('button', { name: 'Dodaj wydarzenie' }).click();
+  await page.locator('.overlay .sheet').getByPlaceholder('Np. wizyta u lekarza').fill('Wizyta');
+  await page.locator('.overlay .sheet').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(page.getByRole('button', { name: 'Wizyta' })).toBeVisible();
+  await expect(page.getByText('Reszta dnia jest wolna.')).toHaveCount(0);
+
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Wizyta' })).toBeVisible();
+  await expect(page.getByText('Reszta dnia jest wolna.')).toHaveCount(1);
+});
+
+test('an empty day on the review screen closes the axis with the empty-day line, not the rest-of-day line', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.axis-tail')).toHaveText('Nic w kalendarzu. To też jest informacja.');
+  await expect(page.getByText('Reszta dnia jest wolna.')).toHaveCount(0);
+});
