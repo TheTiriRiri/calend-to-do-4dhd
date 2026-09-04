@@ -4,7 +4,7 @@
 
 **Goal:** Give the app the "Industry" visual language (self-hosted Barlow, blueprint frames, steel-blue ramp, zero radius) and rebuild the `#/` daily-review screen to handoff variant 1c, without changing a single domain rule.
 
-**Architecture:** Two stages. Stage 0 lays a presentation layer the whole app will later share: self-hosted webfonts wired into the service-worker precache, a rewritten `theme.css` holding tokens plus five primitives (`.blueprint`, `.btn*`, `.tag*`, `.input`, focus ring), and the copy/format helpers the new screens need. Stage 1 consumes that layer on exactly four files — `DayView`, `DailyList`, `DailyReview`, `App` — leaving every other screen on the old styling until a later plan. `app/src/lib/models/` is not touched in either stage; the redesign is markup and CSS only.
+**Architecture:** Two stages. Stage 0 lays a presentation layer the whole app will later share: self-hosted webfonts wired into the service-worker precache, a rewritten `theme.css` holding tokens plus five primitives (`.blueprint`, `.btn*`, `.tag*`, `.input`, focus ring), and the copy/format helpers the new screens need. Stage 1 consumes that layer on exactly three files — `DayView`, `DailyList`, `DailyReview`. `theme.css` is global, so every other screen turns into a hybrid the moment Task 2 lands (Barlow, new heading sizes, `main` padding, zero-radius `.sheet`) while keeping its old markup; that is accepted and recorded in CLAUDE.md in Task 7, and Task 2 carries a visual check so nothing on those screens is clipped or unreadable. `app/src/lib/models/` is not touched in either stage; the redesign is markup and CSS only.
 
 **Tech Stack:** Vite 8, Svelte 5 (runes), TypeScript 6 strict, `dexie` (untouched here), `vite-plugin-pwa` (workbox generateSW), Vitest 4, Playwright 1.62.
 
@@ -21,7 +21,7 @@
 - Run every npm command from `app/`.
 - **Preserve the test contract** wherever the design does not literally require otherwise: keep the `.sheet` and `.overlay` class names, keep `<button>`/`<h*>`/`<label>` element choices, and keep the accessible names `oznacz jako zrobione`, `cofnij`, `Przełóż na jutro`. Visible text may shrink to a glyph; the accessible name may not.
 - Protocol rules that the design must keep enforcing: all A before B before C; B/C collapsed while a higher section has active tasks; ticking a task never opens a confirm dialog; no streak counters, no red "overdue" badges, no copy that blames the user.
-- Target viewport 390×844 (iPhone 14 Pro), safe-area aware. Every interactive element keeps a ≥44px hit area.
+- Target viewport 390×844 (iPhone 14 Pro), safe-area aware. Every interactive element keeps a ≥44px hit area — one recorded exception: the `.undo` word inside the "Zrobione dziś" sentence (Task 5), which gets a padded hit area via negative margins rather than a 44px box.
 - Radius is **0** everywhere in this design; no shadows on these screens.
 - Baseline to preserve: `npm run check` = 0 errors / 15 warnings, `npm run test:unit` = 61 passed, `npm run test:e2e` = 14 passed (chromium). Task counts grow; errors do not.
 
@@ -33,6 +33,7 @@
 |---|---|---|
 | `app/scripts/fetch-fonts.mjs` | create | Dev-time only. Downloads Barlow / Barlow Condensed woff2 subsets from Google and writes both the files and the generated `@font-face` CSS. Never runs at runtime or during `npm run build`. |
 | `app/public/fonts/*.woff2` | create (generated, committed) | 10 font files, ~121 KB total, served from our own origin. |
+| `app/public/fonts/OFL.txt` | create (generated, committed) | SIL Open Font License 1.1 — Barlow's licence; redistributing the font files requires shipping it. |
 | `app/src/lib/design/fonts.css` | create (generated, committed) | The `@font-face` block with local `url()`s and Google's `unicode-range` values preserved. Imported by `theme.css`. |
 | `app/src/lib/design/theme.css` | rewrite | Design tokens + global base + the primitives every screen shares (`.blueprint`/`.corner`, `.btn*`, `.tag*`, `.input`, focus ring, tabbar, `.overlay`, `.sheet`). |
 | `app/src/lib/design/format.ts` | create | Presentation-only pure helpers: `shortDate()`, `taskCount()`. Not domain logic, so it does **not** belong in `models/`; it is unit-tested all the same. |
@@ -40,7 +41,7 @@
 | `app/src/lib/calendar/DayView.svelte` | modify | The `56px | 1fr` time axis, plus a `tail` prop so only the review screen prints "rest of the day is free". |
 | `app/src/lib/tasklist/DailyList.svelte` | modify | Section A (or the first uncollapsed section) as a blueprint frame; B/C as two collapsed tiles; done-today as one inline line. |
 | `app/src/lib/review/DailyReview.svelte` | modify | Screen skeleton: header + date, axis, list, bottom action block; owns the QuickAdd overlay. |
-| `app/App.svelte` | modify | Nothing structural — the tabbar restyle is pure CSS; this file only loses nothing and gains nothing. Listed because the tabbar markup is verified here. |
+| `app/src/App.svelte` | unchanged (verify only) | The tabbar restyle is pure CSS in `theme.css`; the `nav.tabs a.active` markup this relies on already exists here. |
 | `app/vite.config.ts` | modify | `workbox.globPatterns` so woff2 lands in the precache. |
 | `app/tests/e2e/fonts.spec.ts` | create | Proves offline-first typography and the no-network rule. |
 | `app/tests/e2e/theme.spec.ts` | create | Proves the token layer reached the DOM and the `.sheet` contract survived. |
@@ -55,11 +56,11 @@
 
 **Files:**
 - Create: `app/scripts/fetch-fonts.mjs`
-- Create: `app/public/fonts/*.woff2` (generated by the script)
+- Create: `app/public/fonts/*.woff2` + `app/public/fonts/OFL.txt` (generated by the script)
 - Create: `app/src/lib/design/fonts.css` (generated by the script)
 - Modify: `app/src/lib/design/theme.css:1` (add the import)
-- Modify: `app/vite.config.ts:34` (workbox globPatterns)
-- Modify: `app/package.json:14` (add the `fonts` script)
+- Modify: `app/vite.config.ts:17` (workbox globPatterns, next to `registerType`)
+- Modify: `app/package.json:8` (add the `fonts` script after `"build"`)
 - Test: `app/tests/e2e/fonts.spec.ts`
 
 **Interfaces:**
@@ -73,6 +74,14 @@ Create `app/tests/e2e/fonts.spec.ts`:
 ```ts
 import { test, expect } from '@playwright/test';
 
+// bypass onboarding: that screen has no heading and no .btn, so nothing on it
+// would ever request Barlow Condensed and the face would stay "unloaded"
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
+  await page.reload();
+});
+
 test('typography is self-hosted: no font CDN request, Barlow actually loads', async ({ page }) => {
   const external: string[] = [];
   page.on('request', (r) => {
@@ -85,9 +94,12 @@ test('typography is self-hosted: no font CDN request, Barlow actually loads', as
 
   // the app must never reach a third party at runtime (CLAUDE.md: no runtime network calls)
   expect(external).toEqual([]);
-  // both families resolved from our own origin
-  expect(await page.evaluate(() => document.fonts.check('600 17px "Barlow Condensed"'))).toBe(true);
-  expect(await page.evaluate(() => document.fonts.check('400 15px "Barlow"'))).toBe(true);
+  // assert on face status, not document.fonts.check(): check() answers true
+  // for a family with no @font-face at all, so it can never go red
+  const loaded = await page.evaluate(() =>
+    [...document.fonts].filter((f) => f.status === 'loaded').map((f) => `${f.family}/${f.weight}`));
+  expect(loaded).toContain('Barlow Condensed/600');
+  expect(loaded).toContain('Barlow/400');
 });
 
 test('font files are in the service worker precache', async ({ page, request }) => {
@@ -103,7 +115,7 @@ test('font files are in the service worker precache', async ({ page, request }) 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npm run test:e2e -- fonts.spec.ts`
-Expected: FAIL — `document.fonts.check(...)` returns `false` (no Barlow anywhere), and the `/sw.js` body contains no `.woff2`.
+Expected: FAIL — `document.fonts` holds no face at all, so `loaded` is `[]` and `toContain('Barlow Condensed/600')` fails; the `/sw.js` body contains no `.woff2`.
 
 - [ ] **Step 3: Write the fetch script**
 
@@ -165,12 +177,17 @@ const header = '/* Generated by scripts/fetch-fonts.mjs — do not edit by hand.
   + '   Self-hosted so the app makes no runtime network calls. */\n\n';
 fs.writeFileSync(cssOut, header + kept.join('\n\n') + '\n');
 console.log(`wrote src/lib/design/fonts.css (${kept.length} faces, ${Math.round(bytes / 1024)} KB of woff2)`);
+
+// Barlow is SIL OFL 1.1 — redistributing the files requires shipping the licence.
+const LICENSE = 'https://raw.githubusercontent.com/google/fonts/main/ofl/barlow/OFL.txt';
+fs.writeFileSync(path.join(outDir, 'OFL.txt'), await (await fetch(LICENSE)).text());
+console.log('wrote public/fonts/OFL.txt');
 ```
 
 - [ ] **Step 4: Run the script**
 
 Run: `node scripts/fetch-fonts.mjs`
-Expected: 10 lines of `wrote public/fonts/...`, then `wrote src/lib/design/fonts.css (10 faces, ~121 KB of woff2)`. If a family reports fewer than 2 subsets, Google changed its response — stop and re-check the API URL rather than hand-editing the output.
+Expected: 10 lines of `wrote public/fonts/...`, then `wrote src/lib/design/fonts.css (10 faces, ~121 KB of woff2)`, then `wrote public/fonts/OFL.txt`. If a family reports fewer than 2 subsets, Google changed its response — stop and re-check the API URL rather than hand-editing the output. Barlow 500/700 are not used by Stage 0/1 (only Condensed 600 and Barlow 400 are referenced); they are fetched now because the 2a–2g screens use them and re-running the script later would churn every file's revision hash.
 
 - [ ] **Step 5: Add the regeneration script**
 
@@ -271,7 +288,7 @@ test('nothing on the review screen has rounded corners', async ({ page }) => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npm run test:e2e -- theme.spec.ts`
-Expected: FAIL on the first assertion — the body is still `rgb(255, 255, 255)`.
+Expected: test 1 FAILS on its first assertion — the body is still `rgb(255, 255, 255)`. Tests 2 and 3 already pass (WeekView renders `section.sheet` today, and nothing on the current review screen has a radius) — they are guards against the rewrite, not red-first tests.
 
 - [ ] **Step 3: Rewrite theme.css**
 
@@ -444,7 +461,11 @@ Expected: 3 passed.
 Run: `npm run check && npm run test:unit && npm run test:e2e`
 Expected: 0 errors / 15 warnings; 61 unit passed; 19 e2e passed (14 old + 2 fonts + 3 theme). Any old-spec failure here is a real regression from the CSS rewrite — fix it before committing, do not adjust the old spec.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Look at the screens this rewrite touches without restyling**
+
+`theme.css` is global: the new `h1`/`h2`/`h3` sizes, `main` padding, body font and zero-radius `.sheet` land on every screen now. Run `npm run dev`, open `http://localhost:5173` at 390×844 and walk `#/lista`, `#/kalendarz`, `#/ustawienia`, `#/historia`, the task editor, the event editor, and onboarding (clear `localStorage.onboarded`). Expected: old markup in new type — inconsistent by design, but nothing clipped, overlapping, or unreadable. A 34px `h1` at `line-height: 1` breaking a layout is a Task 2 bug: fix it here (scoped override in that component is acceptable), do not defer it. Stop the dev server afterwards.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add app/src/lib/design/theme.css app/tests/e2e/theme.spec.ts
@@ -465,7 +486,7 @@ git commit -m "feat: replace theme.css with the Industry token layer and primiti
 - Produces:
   - `shortDate(d: Date): string` → `'Pt 04.09'`
   - `taskCount(n: number): string` → `'1 zadanie'` / `'3 zadania'` / `'5 zadań'`
-  - new string keys: `dailyList.sectionNameA/B/C`, `dailyList.moveShort`, `dailyList.doneSeparator`, `dailyList.taskCountForms`, `dailyList.addTask`, `calendar.restFree`, `calendar.until`, `dates.weekdaysShort`
+  - new string keys: `dailyList.sectionNameA/B/C`, `dailyList.moveShort`, `dailyList.doneSeparator`, `dailyList.doneListSeparator`, `dailyList.taskCountForms`, `dailyList.addTask`, `calendar.restFree`, `calendar.until`, `dates.weekdaysShort`
 
 `sectionA/B/C` are **not** deleted in this task — Task 5 is the only consumer and deletes them there, so this task can land green on its own.
 
@@ -488,7 +509,8 @@ describe('shortDate', () => {
   });
 
   it('covers every weekday, Sunday included', () => {
-    const week = [4, 5, 6, 7, 8, 9, 10].map((d) => shortDate(new Date(`2026-09-0${d}T12:00:00`)));
+    // padStart: `2026-09-010` is not ISO and parses as Invalid Date
+    const week = [4, 5, 6, 7, 8, 9, 10].map((d) => shortDate(new Date(`2026-09-${String(d).padStart(2, '0')}T12:00:00`)));
     expect(week).toEqual(['Pt 04.09', 'So 05.09', 'Nd 06.09', 'Pn 07.09', 'Wt 08.09', 'Śr 09.09', 'Cz 10.09']);
   });
 });
@@ -531,7 +553,9 @@ In `app/src/lib/design/strings.ts`, add to the `dailyList` object (after `sectio
     sectionNameB: 'Mniej pilne',
     sectionNameC: 'Na później',
     moveShort: '→ jutro',
+    // "Zrobione dziś · Pranie, Kot" — a dot after the label, commas between titles
     doneSeparator: ' · ',
+    doneListSeparator: ', ',
     addTask: 'Dodaj zadanie',
     taskCountForms: { one: 'zadanie', few: 'zadania', many: 'zadań' },
 ```
@@ -618,18 +642,31 @@ Append to `app/tests/e2e/calendar.spec.ts`:
 
 ```ts
 test('the rest-of-day line belongs to the review screen only, never to the week view', async ({ page }) => {
+  // every test starts on an empty DB; with no event today the tail row prints
+  // emptyDay, not restFree — so create one first
   await page.goto('/#/kalendarz');
+  await page.getByRole('button', { name: 'Dodaj wydarzenie' }).click();
+  await page.locator('.overlay .sheet').getByPlaceholder('Np. wizyta u lekarza').fill('Wizyta');
+  await page.locator('.overlay .sheet').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(page.getByRole('button', { name: 'Wizyta' })).toBeVisible();
   await expect(page.getByText('Reszta dnia jest wolna.')).toHaveCount(0);
 
   await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Wizyta' })).toBeVisible();
   await expect(page.getByText('Reszta dnia jest wolna.')).toHaveCount(1);
+});
+
+test('an empty day on the review screen closes the axis with the empty-day line, not the rest-of-day line', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.axis-tail')).toHaveText('Nic w kalendarzu. To też jest informacja.');
+  await expect(page.getByText('Reszta dnia jest wolna.')).toHaveCount(0);
 });
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npm run test:e2e -- calendar.spec.ts`
-Expected: FAIL on the second assertion — the review screen renders 0, not 1.
+Expected: 2 FAIL — the first on its last assertion (the review screen renders 0 `restFree`, not 1), the second because no `.axis-tail` element exists yet.
 
 - [ ] **Step 3: Rewrite DayView**
 
@@ -712,12 +749,12 @@ In `app/src/lib/review/DailyReview.svelte`, replace line 29:
 - [ ] **Step 5: Run the test to verify it passes**
 
 Run: `npm run test:e2e -- calendar.spec.ts`
-Expected: 5 passed (4 existing + 1 new).
+Expected: 5 passed (3 existing + 2 new).
 
 - [ ] **Step 6: Verify the whole suite**
 
 Run: `npm run check && npm run test:e2e`
-Expected: 0 errors / 15 warnings; 20 e2e passed.
+Expected: 0 errors / 15 warnings; 21 e2e passed.
 
 - [ ] **Step 7: Commit**
 
@@ -736,7 +773,7 @@ git commit -m "feat: render the day view as a time axis with an optional closing
 - Modify: `app/tests/e2e/daily-actions.spec.ts:65`
 
 **Interfaces:**
-- Consumes: `.blueprint`/`.corner`, `.tap` (Task 2); `taskCount()` (Task 3); `strings.dailyList.sectionNameA/B/C`, `.moveShort`, `.doneSeparator` (Task 3).
+- Consumes: `.blueprint`/`.corner`, `.tap` (Task 2); `taskCount()` (Task 3); `strings.dailyList.sectionNameA/B/C`, `.moveShort`, `.doneSeparator`, `.doneListSeparator` (Task 3).
 - Produces: nothing for later tasks — but it **hands the "add task" button to Task 6**: this task removes the `Dodaj` button and the `QuickAdd` mount from `DailyList`, and Task 6 re-creates them in `DailyReview`. Between the two tasks there is no way to add a task from the review screen; that is why Task 6 must follow immediately.
 
 Contract points this task must not break:
@@ -848,7 +885,8 @@ Replace `app/src/lib/tasklist/DailyList.svelte` with:
       {#if list.length > 0 && !isCollapsed(p, nonEmpty, manuallyExpanded)}
         <div class="blueprint section" data-priority={p}>
           <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-          <h3 class="section-head"><span class="letter">{letter}</span>{name}</h3>
+          <!-- aria-label: without it the inline spans read as "ANajważniejsze" -->
+          <h3 class="section-head" aria-label="{letter} {name}"><span class="letter" aria-hidden="true">{letter}</span>{name}</h3>
           {#each list as task (task.id)}
             <div class="task-row">
               <button class="tap" aria-label={strings.dailyList.markDone} onclick={() => onComplete(task)}>
@@ -872,8 +910,8 @@ Replace `app/src/lib/tasklist/DailyList.svelte` with:
       {#each sections as { p, letter } (p)}
         {@const list = active.filter((t) => t.priority === p)}
         {#if list.length > 0 && isCollapsed(p, nonEmpty, manuallyExpanded)}
-          <button class="tile section-collapsed" data-priority={p} onclick={() => expand(p)}>
-            <span class="letter">{letter}</span>{taskCount(list.length)}<span class="chevron">▸</span>
+          <button class="tile section-collapsed" data-priority={p} aria-label="{letter} {taskCount(list.length)}" onclick={() => expand(p)}>
+            <span class="letter" aria-hidden="true">{letter}</span>{taskCount(list.length)}<span class="chevron" aria-hidden="true">▸</span>
           </button>
         {/if}
       {/each}
@@ -882,10 +920,11 @@ Replace `app/src/lib/tasklist/DailyList.svelte` with:
     {#if doneToday.length > 0}
       <!-- one visual line, but still one <li> per task: daily-actions.spec.ts
            counts these to prove an auto-completed container is not listed -->
-      <p class="done-label muted">{strings.dailyList.doneToday}</p>
+      <p class="done-label muted">{strings.dailyList.doneToday}{strings.dailyList.doneSeparator}</p>
       <ul class="muted done-list">
-        {#each doneToday as task (task.id)}
+        {#each doneToday as task, i (task.id)}
           <li>
+            {#if i > 0}<span aria-hidden="true">{strings.dailyList.doneListSeparator}</span>{/if}
             <button class="undo" aria-label={strings.dailyList.undoDone} onclick={() => onUncomplete(task)}>{task.title}</button>
           </li>
         {/each}
@@ -920,8 +959,9 @@ Replace `app/src/lib/tasklist/DailyList.svelte` with:
   .note { display: block; font-size: 12px; }
   .move { font-size: 12px; color: var(--color-accent-700); }
 
+  /* no :empty rule — Svelte's {#each} leaves an anchor node inside, and an
+     empty flex div costs no height here anyway */
   .tiles { display: flex; gap: 8px; }
-  .tiles:empty { display: none; }
   .tile {
     flex: 1; display: flex; align-items: center; gap: 8px;
     padding: 10px 12px; min-height: 44px;
@@ -930,13 +970,15 @@ Replace `app/src/lib/tasklist/DailyList.svelte` with:
   }
   .chevron { margin-left: auto; }
 
-  .done-label, .done-list { display: inline; font-size: 13px; padding: 0 6px; }
-  .done-list { list-style: none; margin: 0; }
+  .done-label { display: inline; font-size: 13px; padding-left: 6px; margin: 0; }
+  .done-list { display: inline; font-size: 13px; padding: 0 6px 0 0; list-style: none; margin: 0; }
   .done-list li { display: inline; }
-  .done-list li::before { content: ' · '; }
+  /* a word inside a running sentence: padding grows the hit area to ~40px,
+     the negative margin keeps the line box at 13px so the sentence stays one line */
   .undo {
     font: inherit; font-size: 13px; color: inherit;
-    background: none; border: none; padding: 0; min-height: 0; min-width: 0; cursor: pointer;
+    background: none; border: none; cursor: pointer;
+    padding: 12px 4px; margin: -12px 0; min-height: 0; min-width: 0;
   }
 </style>
 ```
@@ -956,12 +998,12 @@ In `app/src/lib/design/strings.ts`, remove the three now-unused lines from `dail
 Run: `npm run test:e2e -- daily-actions.spec.ts`
 Expected: 5 passed (4 existing, one of them with the new heading name, plus the new collapse test).
 
-Note the deliberate exception to the 44px rule: `.undo` is a word inside a running sentence, where a 44px box would break the line. The row it lives in is 13px secondary text and the whole line is short; if this proves hard to hit on the phone during Task 7's device check, give the whole `<li>` padding instead of enlarging the button.
+Note the recorded exception to the 44px rule: `.undo` is a word inside a running sentence, where a 44px box would break the line. The padding/negative-margin pair gives it a ~40px tall target without growing the line; if it still proves hard to hit on the phone during Task 7's device check, raise the padding rather than restructuring the line.
 
 - [ ] **Step 6: Verify the whole suite**
 
 Run: `npm run check && npm run test:unit && npm run test:e2e`
-Expected: 0 errors / 15 warnings; 68 unit passed; 21 e2e passed.
+Expected: 0 errors / 15 warnings; 68 unit passed; 22 e2e passed.
 
 - [ ] **Step 7: Commit**
 
@@ -982,7 +1024,7 @@ git commit -m "feat: rebuild the daily list as a blueprint section with collapse
 - Consumes: `shortDate()` (Task 3); `DayView`'s `tail` prop (Task 4); `DailyList` without its own add button (Task 5); `.btn`/`.btn-primary`/`.btn-ghost`/`.blueprint` (Task 2); `strings.dailyList.addTask`.
 - Produces: the finished 1c screen.
 
-`QuickAdd` moves here and now opens inside `.overlay` — it keeps its own `.sheet` wrapper, so `smoke.spec.ts:24`'s `.sheet` scoping keeps working for the five-step wizard.
+`QuickAdd` moves here and now opens inside `.overlay` — it keeps its own `.sheet` wrapper, so `smoke.spec.ts:24`'s `.sheet` scoping keeps working for the five-step wizard. QuickAdd itself keeps its pre-redesign markup (an `h2` and three plain buttons); its 3c restyle is out of scope, so expect it to look old inside the new overlay and do not fix that here.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1087,8 +1129,13 @@ Replace `app/src/lib/review/DailyReview.svelte` with:
 </main>
 
 <style>
-  /* one column, actions pinned to the bottom above the tabbar */
-  .review { display: flex; flex-direction: column; gap: 18px; min-height: 100dvh; }
+  /* one column, actions pinned to the bottom above the tabbar. body already
+     carries padding-top: safe-area, so a bare 100dvh would always overflow by
+     that much and the page would scroll even when short */
+  .review {
+    display: flex; flex-direction: column; gap: 18px;
+    min-height: calc(100dvh - env(safe-area-inset-top));
+  }
   header { display: flex; justify-content: space-between; align-items: baseline; }
   header h1 { margin: 0; }
   .date {
@@ -1108,7 +1155,7 @@ Expected: 5 passed (4 existing + 1 new).
 - [ ] **Step 5: Verify the whole suite**
 
 Run: `npm run check && npm run test:unit && npm run test:e2e`
-Expected: 0 errors / 15 warnings; 68 unit passed; 22 e2e passed.
+Expected: 0 errors / 15 warnings; 68 unit passed; 23 e2e passed.
 
 - [ ] **Step 6: Look at it**
 
@@ -1136,18 +1183,18 @@ git commit -m "feat: rebuild the review screen to the 1c layout with a bottom ac
 - [ ] **Step 1: Run the full suite on both engines**
 
 Run: `npm run test:e2e:docker`
-Expected: 44 passed (22 chromium + 22 webkit). WebKit is where this redesign is most likely to differ: `color-mix()` in `--color-divider`, `100dvh` on `.review`, and `place-items` on the letter squares. A WebKit-only failure is a real iOS bug — fix it, do not skip the test.
+Expected: 46 passed (23 chromium + 23 webkit). WebKit is where this redesign is most likely to differ: `color-mix()` in `--color-divider`, `100dvh` on `.review`, and `place-items` on the letter squares. A WebKit-only failure is a real iOS bug — fix it, do not skip the test.
 
 - [ ] **Step 2: Verify the production build**
 
 Run: `npm run build`
-Expected: build succeeds; the PWA line reports **11** precache entries (7 before + 10 woff2 − nothing removed = 17 if all subsets are precached; if the count is 7, `globPatterns` did not take effect). Confirm explicitly:
+Expected: build succeeds; the PWA line reports **≥ 17** precache entries (7 before + 10 woff2, plus whatever `ico,png,svg` the new glob picks up from `public/`). If the count is still 7, `globPatterns` did not take effect. Confirm explicitly:
 
 ```bash
-grep -c woff2 dist/sw.js
+grep -o '[A-Za-z-]*\.woff2' dist/sw.js | sort -u | wc -l
 ```
 
-Expected: a non-zero count.
+Expected: `10`.
 
 - [ ] **Step 3: Deploy and check on the phone**
 
@@ -1162,7 +1209,7 @@ Then on the iPhone, open the app from the home-screen icon (`https://cal-to-do-k
 In `CLAUDE.md`, under "Setup and commands", add to the command list:
 
 ```bash
-npm run fonts       # re-download public/fonts/*.woff2 + regenerate src/lib/design/fonts.css (dev-time only)
+npm run fonts       # re-download public/fonts/*.woff2 + OFL.txt, regenerate src/lib/design/fonts.css (dev-time only)
 ```
 
 Under "Architecture", after the routing paragraph, add:
@@ -1182,7 +1229,7 @@ Redesign status: the Industry design system (handoff v2, screen 1c) is implement
 - [ ] **Step 5: Verify the baseline one final time**
 
 Run: `npm run check && npm run test:unit && npm run test:e2e`
-Expected: 0 errors / 15 warnings; 68 unit passed; 22 e2e passed. Report the real numbers; if a count differs from this plan, say so rather than adjusting the claim.
+Expected: 0 errors / 15 warnings; 68 unit passed; 23 e2e passed. Report the real numbers; if a count differs from this plan, say so rather than adjusting the claim.
 
 - [ ] **Step 6: Commit**
 
@@ -1197,7 +1244,7 @@ git commit -m "docs: record the Industry design system and the self-hosted font 
 
 Do not start these inside this plan; each needs its own decision or plan.
 
-- **Screens 2a–2g and 3a–3e.** Estimated 3–5 days on their own. Two open questions block parts of it: 2a draws a completed step inside a container card, but `queries.ts:60` filters completed steps out of `containerDescendants`, so showing them is a product decision with a model change behind it; 2f wants history grouped by day, while `completedHistory` returns a flat list.
+- **Screens 2a–2g and 3a–3e.** Estimated 3–5 days on their own. Two open questions block parts of it: 2a draws a completed step inside a container card, but `queries.ts:63` filters completed steps out of `containerDescendants`, so showing them is a product decision with a model change behind it; 2f wants history grouped by day, while `completedHistory` returns a flat list.
 - **Master-list collapse.** The handoff's 2a mock implies A/B/C grouping with collapse on the master list. The collapse rule is currently a daily-list rule; applying it to undated tasks changes the protocol's meaning and needs a decision first.
 - **Manifest and icon palette.** `theme_color` in `vite.config.ts` is still `#4a6fa5` while the design system's accent is `#5980a6`. Aligning the manifest colour is cheap; the icons are **not** — `public/icons/` now holds hand-designed artwork and `scripts/make-icons.mjs` is superseded, so never regenerate them into the default outdir. Changing the icon also changes how the user finds the app on their home screen, which is a deliberate call, not a cleanup.
 - **Re-collapsing an expanded section.** `manuallyExpanded` only ever grows; there is no way back except a reload. The design does not ask for one.
@@ -1207,5 +1254,7 @@ Do not start these inside this plan; each needs its own decision or plan.
 **Spec coverage.** Handoff README §"Screen: Dziś (1c)" points 1–7: header (Task 6), day axis (Task 4), section A blueprint (Task 5), B/C tiles (Task 5), done-today line (Task 5), bottom actions (Task 6), tabbar (Task 2 CSS, verified in Task 6 step 6). §"Design Tokens" and §"Blueprint frame" and §"Buttons" → Task 2. §"Zakres zmian w repo" font line → Task 1, implemented as self-hosting because the CDN form is forbidden. §"Interactions & Behavior" → preserved by construction: no animations are added, ticking stays dialog-free, `isCollapsed` is untouched, and the empty state keeps `strings.dailyList.emptyState` (README:61's version; README:34's split heading belongs to screen 3e and is out of scope here). §"State Management" "no changes" → honoured; `liveQuery`, `activeTasks`, `doneTodayTasks`, `isCollapsed`, `nowTick` all keep their current shapes. The five strings README:44 promises are all present, plus the ones the prototype needs that it forgot.
 
 **Placeholder scan.** No TBD/TODO, no "handle edge cases", no "similar to Task N": every code step carries the full file or the exact replacement line, and both new test files are written out in full.
+
+**Deliberate deviations from the handoff.** `.btn` has a transparent border and `.btn-secondary` adds the divider (the handoff puts the divider on `.btn` and clears it on `.btn-ghost`) — same rendered result for the three variants used, one fewer override. `font-display: swap` is kept even though the files are precached: it only costs a swap on the very first online launch. `:focus { outline: none }` is global and also reaches the un-restyled screens; `:focus-visible` restores the ring everywhere.
 
 **Type consistency.** `tail?: 'restFree' | 'none'` is declared in Task 4 and consumed in Task 4 step 4 and Task 6 step 3 with the same literal. `shortDate(d: Date): string` and `taskCount(n: number): string` are defined in Task 3 and called in Task 6 and Task 5 respectively with those signatures. `strings.dailyList.taskCountForms` is written in Task 3 step 3 and read in Task 3 step 4 under the same path. `sectionNameA/B/C` are added in Task 3 and consumed in Task 5, where the superseded `sectionA/B/C` are deleted — no task reads a key another task removed before it runs. `.tap`, `.blueprint`, `.corner`, `.axis*` are defined in Task 2 and used in Tasks 4–6 under those exact names.
