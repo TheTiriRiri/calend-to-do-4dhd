@@ -62,7 +62,7 @@ test('priority change via the editor moves the task to its new section', async (
   await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
 
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'B — mniej pilne' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mniej pilne' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Zmiana priorytetu' })).toBeVisible();
 });
 
@@ -73,4 +73,19 @@ test('move to tomorrow removes a task from the active list', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Zadanie do przełożenia' })).toBeVisible();
   await page.getByRole('button', { name: 'Przełóż na jutro' }).click();
   await expect(page.getByRole('button', { name: 'Zadanie do przełożenia' })).toBeHidden();
+});
+
+test('a collapsed section shows a Polish-correct task count and expands on tap', async ({ page }) => {
+  await addTaskScheduledToday(page, 'Pilne raz', 'A — dziś/jutro');
+  await addTaskScheduledToday(page, 'Mniej pilne raz', 'B — częściowo pilne');
+  await addTaskScheduledToday(page, 'Mniej pilne dwa', 'B — częściowo pilne');
+
+  await page.goto('/');
+  // B stays collapsed while A has active tasks (protocol: all A before B)
+  const tile = page.getByRole('button', { name: '2 zadania' });
+  await expect(tile).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mniej pilne raz' })).toBeHidden();
+
+  await tile.click();
+  await expect(page.getByRole('button', { name: 'Mniej pilne raz' })).toBeVisible();
 });
