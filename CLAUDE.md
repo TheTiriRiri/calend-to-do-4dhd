@@ -42,6 +42,7 @@ npm run test:unit    # Vitest, tests/unit/**/*.test.ts, node env, no DB
 npm run test:e2e     # Playwright, tests/e2e/*.spec.ts; builds + previews on :4173 by itself; chromium only unless E2E_WEBKIT=1
 npm run test:e2e:docker   # same suite, chromium+webkit, inside the official Playwright image (needs Docker, not sudo)
 node scripts/make-icons.mjs   # regenerate public/icons/*.png (pure Node, no deps)
+npm run deploy       # build + wrangler pages deploy dist -> https://cal-to-do-kk.pages.dev
 ```
 
 Current state: `check` reports 0 errors and 15 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 61 unit tests, 14 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip + malformed import, event edit/delete, week navigation, undo/priority-change/move-to-tomorrow, onboarding), all 28 green on chromium + webkit.
@@ -88,7 +89,9 @@ UI folders mirror the domain: `tasklist/` (QuickAdd, MasterList, DailyList, Task
 
 ## Status and what is deliberately missing
 
-Plan tasks 0-17 are done (scaffold through e2e). **Not done:** Task 18 (on-device smoke test via ephemeral HTTPS tunnel - throwaway data only) and Task 19 (permanent hosting on Cloudflare Pages, `npm i -D wrangler` + `wrangler pages deploy dist`). Real use must not start before a stable origin exists: IndexedDB is origin-bound and the 3-month history would be lost.
+Plan tasks 0-17 and 19 are done. Task 18 (on-device smoke test over an ephemeral `trycloudflare.com` tunnel) was deliberately skipped: hosting went up first, so the smoke test runs on the permanent origin and its data survives. `preview.allowedHosts` in [app/vite.config.ts](app/vite.config.ts) still carries `.trycloudflare.com` in case a tunnel is ever needed for a local build.
+
+**Hosting:** Cloudflare Pages project `cal-to-do-kk`, direct upload (no Git integration), production branch `main`, live at **https://cal-to-do-kk.pages.dev**. Deploy with `npm run deploy`. The project name is load-bearing: it *is* the origin, and IndexedDB is origin-bound - renaming the project or installing from a per-deploy alias (`<hash>.cal-to-do-kk.pages.dev`) means a different origin and an empty database. Install to the iPhone home screen only from the bare production URL. A freshly created Cloudflare account serves `522` from every `*.pages.dev` host for the first ~10 minutes while routing provisions - it resolves itself, do not debug the build.
 
 Conscious v1 cuts recorded in spec §9 - do not "fix" them as bugs: drag-to-reorder (within-section order = insertion order), error banner for failed IndexedDB writes (bare awaits), read view of past problem forms, clearing an assigned category, weekly list level, per-event alerts / any push notifications.
 
