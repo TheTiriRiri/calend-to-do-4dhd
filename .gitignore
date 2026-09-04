@@ -78,3 +78,6 @@ transcript-*/
 # --- Logs ---
 *.log
 logs/
+
+# --- Wrangler local cache ---
+.wrangler/
