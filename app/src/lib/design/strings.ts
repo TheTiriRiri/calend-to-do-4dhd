@@ -26,6 +26,15 @@ export const strings = {
     sectionA: 'A — najważniejsze',
     sectionB: 'B — mniej pilne',
     sectionC: 'C — na później',
+    sectionNameA: 'Najważniejsze',
+    sectionNameB: 'Mniej pilne',
+    sectionNameC: 'Na później',
+    moveShort: '→ jutro',
+    // "Zrobione dziś · Pranie, Kot" — a dot after the label, commas between titles
+    doneSeparator: ' · ',
+    doneListSeparator: ', ',
+    addTask: 'Dodaj zadanie',
+    taskCountForms: { one: 'zadanie', few: 'zadania', many: 'zadań' },
     markDone: 'oznacz jako zrobione',
     undoDone: 'cofnij',
   },
@@ -38,6 +47,8 @@ export const strings = {
     note: 'Notatka',
     confirmDeleteEvent: 'Usunąć to wydarzenie na stałe?',
     emptyDay: 'Nic w kalendarzu. To też jest informacja.',
+    restFree: 'Reszta dnia jest wolna.',
+    until: (time: string) => `do ${time}`,
     start: 'Start',
     end: 'Koniec',
     prevWeek: 'Poprzedni tydzień',
@@ -105,5 +116,11 @@ export const strings = {
     reviewTimeLabel: 'Twoja pora przeglądu',
     reminderHint: 'Przypomnienie ustawiasz w systemie: Zegar (budzik), Kalendarz (wydarzenie z alertem) albo Skróty (automatyzacja o porze dnia).',
     version: 'Wersja',
+  },
+  dates: {
+    // Intl 'pl-PL' emits "pt" lowercase with a trailing dot in some runtimes and
+    // a comma in the long form — neither matches the design, so the abbreviations
+    // are spelled out here. Index by Date.getDay(): 0 = Sunday.
+    weekdaysShort: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So'],
   },
 } as const;
