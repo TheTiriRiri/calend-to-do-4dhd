@@ -15,6 +15,9 @@ export default defineConfig({
     svelte(),
     VitePWA({
       registerType: 'autoUpdate',
+      // the default globPatterns has no woff2 — without this the first offline
+      // launch renders in system-ui
+      workbox: { globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'] },
       manifest: {
         id: '/',
         name: 'Plan Dnia',

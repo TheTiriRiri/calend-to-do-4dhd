@@ -1,3 +1,5 @@
+@import './fonts.css';
+
 :root {
   --muted: #6b7280;
   --accent: #4a6fa5;
@@ -9,11 +11,13 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, system-ui, sans-serif;
+  font-family: 'Barlow', -apple-system, system-ui, sans-serif;
   background: var(--bg);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+h1, h2, h3 { font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 600; }
 
 button { font: inherit; min-height: 44px; min-width: 44px; }
 input, textarea { font: inherit; }
