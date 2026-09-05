@@ -1,16 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { bypassOnboarding, localDay } from './utils';
 
-function inDays(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toLocaleDateString('sv-SE');
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
-});
+test.beforeEach(({ page }) => bypassOnboarding(page));
 
 test('event edit updates the calendar row', async ({ page }) => {
   await page.goto('/#/kalendarz');
@@ -43,7 +34,7 @@ test('week navigation reveals events beyond the initial 7-day window (I-10)', as
   await page.goto('/#/kalendarz');
   await page.getByRole('button', { name: 'Dodaj wydarzenie' }).click();
   await page.locator('.overlay .sheet').getByPlaceholder('Np. wizyta u lekarza').fill('Wydarzenie za 10 dni');
-  await page.locator('.overlay .sheet').getByLabel(/Dzień/).fill(inDays(10));
+  await page.locator('.overlay .sheet').getByLabel(/Dzień/).fill(localDay(10));
   await page.locator('.overlay .sheet').getByRole('button', { name: 'Zapisz' }).click();
 
   // outside the initial today..+6 window

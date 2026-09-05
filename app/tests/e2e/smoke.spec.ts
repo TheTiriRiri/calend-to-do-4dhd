@@ -1,10 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { bypassOnboarding } from './utils';
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
-});
+test.beforeEach(({ page }) => bypassOnboarding(page));
 
 test('quick-add puts a task on the master list', async ({ page }) => {
   await page.goto('/#/lista');

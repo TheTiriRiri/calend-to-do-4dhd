@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { bypassOnboarding } from './utils';
 
 // The app is installed to the home screen and is rarely quit — it is normally
 // resumed, not launched. "Today" is therefore recomputed on visibilitychange
@@ -11,9 +12,7 @@ const SCHEDULED_DAY = '2026-09-05';
 
 test('the daily list follows the clock across midnight when the app returns to foreground', async ({ page }) => {
   await page.clock.install({ time: OPENED_AT });
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
+  await bypassOnboarding(page);
 
   await page.goto('/#/lista');
   await page.getByRole('button', { name: 'Dodaj' }).click();
@@ -41,9 +40,7 @@ test('the daily list follows the clock across midnight when the app returns to f
 
 test('a task completed yesterday leaves the done-today strip and stays in history', async ({ page }) => {
   await page.clock.install({ time: OPENED_AT });
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
+  await bypassOnboarding(page);
 
   await page.goto('/#/lista');
   await page.getByRole('button', { name: 'Dodaj' }).click();
