@@ -18,14 +18,6 @@ No linter or formatter is configured (no ESLint/Prettier/Biome). Style is whatev
 
 ## Repository layout
 
-```
-app/        Vite project - the whole application; run ALL npm commands here
-specs/      design doc (tracked)
-plans/      implementation plan (tracked)
-docs/       source material - gitignored, local-only (see below)
-.superpowers/  agent tooling scratch - gitignored
-```
-
 **`docs/` is gitignored in full and local-only.** It holds the source .pptx (36 slides, the domain spec), a 107 MB recording of a live therapy session with real participants, its whisper transcript, and `scripts/video-tools/` (`transcribe.sh` / `frames.sh` / `video-to-md.sh`; Polish speech needs `-l pl`). Read it to inform design, but never copy participant names, quotes, or frames into tracked files. A fresh clone has no `docs/`: this file plus `specs/` are the surviving spec.
 
 ## Setup and commands
@@ -46,17 +38,11 @@ npm run deploy       # build + wrangler pages deploy dist -> https://cal-to-do-k
 npm run fonts       # re-download public/fonts/*.woff2 + OFL.txt, regenerate src/lib/design/fonts.css (dev-time only)
 ```
 
-Current state: `check` reports 0 errors and 15 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. 78 unit tests, 58 e2e flows (quick-add, five-step wizard, breakdown, complete-to-history, backup round trip + malformed import + mid-transaction rollback, event edit/delete, week navigation, undo/priority-change/move-to-tomorrow, the midnight rollover on foreground, yesterday's completion moving from the done-today strip into history, the B-section auto-expand once A is done, a scheduled container staying off the daily list, onboarding, the fonts self-hosting + precache checks, the theme token/`.sheet`-contract/zero-radius checks, the day-axis tail behaviour, the collapsed-section task-count expansion, an expanded section closing again when new A work arrives, adding a task from the review screen, the pre-sweep behaviour locks in `pre-sweep.spec.ts`, and the per-route theme invariants), all 116 green on chromium + webkit via `npm run test:e2e:docker`.
+Current state: `check` reports 0 errors and 15 `state_referenced_locally` warnings - intentional: editors snapshot the incoming prop once because edits are save-committed, not live. The unit + e2e suites are green on chromium + webkit via `npm run test:e2e:docker`.
 
 webkit is opt-in on bare `npm run test:e2e` (`E2E_WEBKIT=1` env var) because this host is missing system libraries (`libevent-2.1-7t64`, `libgstreamer-plugins-bad1.0-0`, `libavif16`) that the webkit binary links against - no sudo on this host, so `npx playwright install-deps webkit` is not an option here. `npm run test:e2e:docker` runs the full suite (chromium + webkit) inside the official `mcr.microsoft.com/playwright` image instead - no Dockerfile needed, it is a plain `docker run` against the upstream image with the repo bind-mounted; requires Docker, not sudo. The image tag is pinned to the exact `@playwright/test` version (`v1.62.1-noble`) - bump both together when upgrading Playwright, a mismatch is a silent source of browser/protocol errors.
 
 Playwright: chromium always runs; webkit project only registers when `E2E_WEBKIT` is set (see above). Viewport 390x844, `reuseExistingServer` outside CI. Most e2e specs bypass onboarding by setting `localStorage.onboarded = '1'` in `beforeEach`; `onboarding.spec.ts` is the one flow that runs it for real. Modal buttons must be scoped (e.g. `page.locator('.sheet')`, or `.overlay .sheet` on screens like the calendar that have other `.sheet` elements in the DOM) - the underlying screen stays in the DOM behind a sheet and shares button labels like "Dodaj".
-
-CI: [.github/workflows/ci.yml](.github/workflows/ci.yml) runs `check` + `test:unit` + `test:e2e` (chromium, via `playwright install --with-deps`) + `build` on every push to `main` and every PR. Webkit is not in CI - it only runs locally via `test:e2e:docker`.
-
-## Stack
-
-Vite 8 + Svelte 5 (runes) + TypeScript 6 strict, static SPA, no SSR, no routing framework. Runtime dependency: **`dexie` only** (IndexedDB). Dev: `vite-plugin-pwa` (autoUpdate service worker, manifest in [app/vite.config.ts](app/vite.config.ts)), Vitest 4, Playwright.
 
 ## Architecture
 
