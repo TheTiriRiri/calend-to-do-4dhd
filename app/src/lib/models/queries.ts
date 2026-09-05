@@ -25,6 +25,18 @@ export function activeTasks(tasks: Task[], now: Date = new Date()): Task[] {
   return sortedForDailyList(tasks.filter((t) => isActive(t, now) && !containers.has(t.id)));
 }
 
+/** Product heuristic, not protocol: the material defines A as "today or tomorrow"
+ *  and sets no count. Deliberately a source constant — a Settings knob here is the
+ *  "perfect system trap". */
+export const A_COMFORT_LIMIT = 3;
+
+/** True once more than A_COMFORT_LIMIT A tasks sit on today's list — a nudge to move
+ *  some to tomorrow, never a hard limit and never a blocking rule.
+ *  Takes activeTasks() output: the caller already holds that list. */
+export function hasTooManyA(active: readonly Task[]): boolean {
+  return active.filter((t) => t.priority === 'a').length > A_COMFORT_LIMIT;
+}
+
 export function doneTodayTasks(tasks: Task[], now: Date = new Date()): Task[] {
   const containers = containerIdSet(tasks);
   // a container's completion is derived from its steps and needs no undo of its
