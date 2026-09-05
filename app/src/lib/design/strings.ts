@@ -26,6 +26,7 @@ export const strings = {
     sectionNameA: 'Najważniejsze',
     sectionNameB: 'Mniej pilne',
     sectionNameC: 'Na później',
+    manyA: 'Sporo w A na dziś — część może zaczekać do jutra.',
     moveShort: '→ jutro',
     // "Zrobione dziś · Pranie, Kot" — a dot after the label, commas between titles
     doneSeparator: ' · ',

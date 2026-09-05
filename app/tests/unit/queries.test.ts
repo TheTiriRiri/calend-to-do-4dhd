@@ -9,6 +9,7 @@ import {
   completedHistory,
   containerDescendants,
   doneTodayTasks,
+  hasTooManyA,
   isContainer,
   isEarlierThanToday,
   masterListSections,
@@ -44,6 +45,46 @@ describe('activeTasks', () => {
     expect(activeTasks([scheduled(-1)], now)).toEqual([]);
     expect(activeTasks([scheduled(2, 1)], now)).toEqual([]);
   });
+});
+
+describe('hasTooManyA', () => {
+  const withPriority = (priority: Task['priority']) => newTask('t', priority);
+
+  it('3 A tasks is not too many', () => {
+    expect(hasTooManyA([withPriority('a'), withPriority('a'), withPriority('a')])).toBe(false);
+  });
+
+  it('a 4th A task tips it over', () => {
+    const a = [withPriority('a'), withPriority('a'), withPriority('a'), withPriority('a')];
+    expect(hasTooManyA(a)).toBe(true);
+  });
+
+  it('B and C tasks never count, however many there are', () => {
+    const bc = [withPriority('b'), withPriority('b'), withPriority('b'), withPriority('b'), withPriority('c')];
+    expect(hasTooManyA(bc)).toBe(false);
+  });
+
+  // locks the contract: the caller feeds activeTasks() output, so a future-dated
+  // or completed A task must not push 3 active A tasks over the limit
+  it('over activeTasks(), a future or completed A task does not tip 3 active A over', () => {
+    const activeA = [0, 1, 2].map(() => scheduledA(0));
+    const tomorrowA = scheduledA(-1);
+    const doneA = scheduledA(0);
+    doneA.dateCompleted = now.toISOString();
+    expect(hasTooManyA(activeTasks([...activeA, tomorrowA, doneA], now))).toBe(false);
+  });
+
+  // the only executable proof of decision D-1: rolled-over A tasks count
+  it('over activeTasks(), 3 rolled-over A tasks plus 1 added today is too many', () => {
+    const rolledOver = [2, 3, 4].map((d) => scheduledA(d));
+    expect(hasTooManyA(activeTasks([...rolledOver, scheduledA(0)], now))).toBe(true);
+  });
+
+  function scheduledA(daysAgo: number): Task {
+    const t = newTask('t', 'a');
+    t.scheduledDate = toISODate(addDays(startOfDay(now), -daysAgo));
+    return t;
+  }
 });
 
 describe('doneTodayTasks', () => {

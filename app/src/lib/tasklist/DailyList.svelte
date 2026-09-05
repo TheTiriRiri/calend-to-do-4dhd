@@ -2,7 +2,7 @@
   import { liveQuery } from 'dexie';
   import { db } from '../models/db';
   import type { Priority, Task } from '../models/types';
-  import { activeTasks, doneTodayTasks, isEarlierThanToday, priorityRank } from '../models/queries';
+  import { activeTasks, doneTodayTasks, hasTooManyA, isEarlierThanToday, priorityRank } from '../models/queries';
   import { expansionHolds, isCollapsed } from '../models/collapse';
   import { completeWithParent, uncompleteWithParent } from '../models/completion';
   import { moveToNextDay } from '../models/schedule';
@@ -26,6 +26,7 @@
     return doneTodayTasks($tasks ?? []);
   });
   const nonEmpty = $derived(new Set(active.map((t) => t.priority)));
+  const tooManyA = $derived(hasTooManyA(active));
   // an expand survives only while nothing new turns up above the section
   const manuallyExpanded = $derived(
     new Set(
@@ -79,6 +80,9 @@
           <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
           <!-- aria-label: without it the inline spans read as "ANajważniejsze" -->
           <h3 class="section-head" aria-label="{letter} {name}"><span class="letter" aria-hidden="true">{letter}</span>{name}</h3>
+          {#if p === 'a' && tooManyA}
+            <p class="muted hint">{strings.dailyList.manyA}</p>
+          {/if}
           {#each list as task (task.id)}
             <div class="task-row">
               <button class="tap" aria-label={strings.dailyList.markDone} onclick={() => onComplete(task)}>
@@ -149,6 +153,9 @@
     background: none; border: none; padding: 10px 4px; min-height: 44px; cursor: pointer;
   }
   .note { display: block; font-size: 12px; }
+  /* a real <p>, unlike .note's <span>: the UA margin has to go, and the section's
+     4px flex gap owns the spacing */
+  .hint { margin: 0; font-size: 12px; }
   .move { font-size: 12px; color: var(--color-accent-700); }
 
   /* no :empty rule — Svelte's {#each} leaves an anchor node inside, and an

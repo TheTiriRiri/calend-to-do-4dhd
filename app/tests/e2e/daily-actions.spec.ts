@@ -6,19 +6,21 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-async function addTaskScheduledToday(page: import('@playwright/test').Page, title: string, priority: 'A — dziś/jutro' | 'B — częściowo pilne' | 'C — może poczekać') {
+async function addTaskScheduled(page: import('@playwright/test').Page, title: string, priority: 'A — dziś/jutro' | 'B — częściowo pilne' | 'C — może poczekać', daysAgo = 0) {
+  const day = new Date();
+  day.setDate(day.getDate() - daysAgo);
   await page.goto('/#/lista');
   await page.getByRole('button', { name: 'Dodaj' }).click();
   await page.getByPlaceholder('Co jest do zrobienia?').fill(title);
   await page.getByRole('button', { name: priority }).click();
   await page.getByText(title).click();
-  await page.getByLabel(/Dzień/).fill(new Date().toLocaleDateString('sv-SE'));
+  await page.getByLabel(/Dzień/).fill(day.toLocaleDateString('sv-SE'));
   await page.getByRole('button', { name: 'Zapisz' }).click();
   await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
 }
 
 test('undo restores a completed task to its section', async ({ page }) => {
-  await addTaskScheduledToday(page, 'Zadanie do cofnięcia', 'A — dziś/jutro');
+  await addTaskScheduled(page, 'Zadanie do cofnięcia', 'A — dziś/jutro');
 
   await page.goto('/');
   await page.getByRole('button', { name: 'oznacz jako zrobione' }).click();
@@ -90,7 +92,7 @@ test('a scheduled container never reaches the daily list — only its step does'
 });
 
 test('priority change via the editor moves the task to its new section', async ({ page }) => {
-  await addTaskScheduledToday(page, 'Zmiana priorytetu', 'C — może poczekać');
+  await addTaskScheduled(page, 'Zmiana priorytetu', 'C — może poczekać');
 
   await page.goto('/#/lista');
   await page.getByText('Zmiana priorytetu').click();
@@ -104,7 +106,7 @@ test('priority change via the editor moves the task to its new section', async (
 });
 
 test('move to tomorrow removes a task from the active list', async ({ page }) => {
-  await addTaskScheduledToday(page, 'Zadanie do przełożenia', 'A — dziś/jutro');
+  await addTaskScheduled(page, 'Zadanie do przełożenia', 'A — dziś/jutro');
 
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Zadanie do przełożenia' })).toBeVisible();
@@ -113,8 +115,8 @@ test('move to tomorrow removes a task from the active list', async ({ page }) =>
 });
 
 test('completing the last A task opens B — collapsing counts active tasks, not done ones', async ({ page }) => {
-  await addTaskScheduledToday(page, 'Jedyne pilne', 'A — dziś/jutro');
-  await addTaskScheduledToday(page, 'Mniej pilne po A', 'B — częściowo pilne');
+  await addTaskScheduled(page, 'Jedyne pilne', 'A — dziś/jutro');
+  await addTaskScheduled(page, 'Mniej pilne po A', 'B — częściowo pilne');
 
   await page.goto('/');
   await expect(page.getByRole('button', { name: '1 zadanie' })).toBeVisible();
@@ -131,8 +133,8 @@ test('completing the last A task opens B — collapsing counts active tasks, not
 });
 
 test('an expanded section closes again when new higher-priority work arrives', async ({ page }) => {
-  await addTaskScheduledToday(page, 'Pilne istniejące', 'A — dziś/jutro');
-  await addTaskScheduledToday(page, 'Mniej pilne otwarte', 'B — częściowo pilne');
+  await addTaskScheduled(page, 'Pilne istniejące', 'A — dziś/jutro');
+  await addTaskScheduled(page, 'Mniej pilne otwarte', 'B — częściowo pilne');
 
   await page.goto('/');
   await page.getByRole('button', { name: '1 zadanie' }).click();
@@ -149,9 +151,9 @@ test('an expanded section closes again when new higher-priority work arrives', a
 });
 
 test('a collapsed section shows a Polish-correct task count and expands on tap', async ({ page }) => {
-  await addTaskScheduledToday(page, 'Pilne raz', 'A — dziś/jutro');
-  await addTaskScheduledToday(page, 'Mniej pilne raz', 'B — częściowo pilne');
-  await addTaskScheduledToday(page, 'Mniej pilne dwa', 'B — częściowo pilne');
+  await addTaskScheduled(page, 'Pilne raz', 'A — dziś/jutro');
+  await addTaskScheduled(page, 'Mniej pilne raz', 'B — częściowo pilne');
+  await addTaskScheduled(page, 'Mniej pilne dwa', 'B — częściowo pilne');
 
   await page.goto('/');
   // B stays collapsed while A has active tasks (protocol: all A before B)
@@ -161,4 +163,25 @@ test('a collapsed section shows a Polish-correct task count and expands on tap',
 
   await tile.click();
   await expect(page.getByRole('button', { name: 'Mniej pilne raz' })).toBeVisible();
+});
+
+test('a 4th active A task shows the overload hint, which clears once one is done', async ({ page }) => {
+  const hint = page.locator('[data-priority="a"]').getByText('Sporo w A na dziś — część może zaczekać do jutra.');
+
+  // 'Pranie' is dated two days back: it proves decision D-1 end to end (a rolled-over
+  // A task counts) and asserts the "z wcześniejszych dni" badge, which had no e2e at
+  // all until now — QA open item 2.1
+  await addTaskScheduled(page, 'Pranie', 'A — dziś/jutro', 2);
+  await addTaskScheduled(page, 'Kot', 'A — dziś/jutro');
+  await addTaskScheduled(page, 'Rachunki', 'A — dziś/jutro');
+  await page.goto('/');
+  await expect(page.getByText('z wcześniejszych dni')).toBeVisible();
+  await expect(hint).toBeHidden();
+
+  await addTaskScheduled(page, 'Zakupy', 'A — dziś/jutro');
+  await page.goto('/');
+  await expect(hint).toBeVisible();
+
+  await page.getByRole('button', { name: 'oznacz jako zrobione' }).first().click();
+  await expect(hint).toBeHidden();
 });
