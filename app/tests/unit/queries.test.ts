@@ -5,6 +5,7 @@ import {
   activeTasks,
   canAdvanceWizardStep,
   childrenOf,
+  completedByDay,
   completedHistory,
   containerDescendants,
   doneTodayTasks,
@@ -122,14 +123,43 @@ describe('topLevelContainers', () => {
 });
 
 describe('containerDescendants', () => {
-  it('flattens nested steps depth-first, excluding completed ones', () => {
+  // handoff 2a: a finished step keeps its row in the container and shows a done
+  // state — the section is the record of the breakdown, so hiding what is done
+  // would make a half-finished project look untouched
+  it('flattens nested steps depth-first, completed ones included, in insertion order', () => {
     const projekt = newTask('projekt', 'b');
     const etap = newTask('etap', 'b'); etap.parentId = projekt.id; etap.sortOrder = 0;
     const krok = newTask('krok', 'b'); krok.parentId = etap.id;
     const inny = newTask('inny etap', 'b'); inny.parentId = projekt.id; inny.sortOrder = 1;
-    const done = newTask('zrobiony', 'b'); done.parentId = projekt.id; done.dateCompleted = now.toISOString();
+    const done = newTask('zrobiony', 'b'); done.parentId = projekt.id; done.sortOrder = 2;
+    done.dateCompleted = now.toISOString();
     const all = [projekt, etap, krok, inny, done];
-    expect(containerDescendants(projekt, all).map((t) => t.title)).toEqual(['etap', 'krok', 'inny etap']);
+    expect(containerDescendants(projekt, all).map((t) => t.title)).toEqual(['etap', 'krok', 'inny etap', 'zrobiony']);
+  });
+
+  it('keeps the children of a completed step visible under it', () => {
+    const projekt = newTask('projekt', 'b');
+    const etap = newTask('etap', 'b'); etap.parentId = projekt.id; etap.dateCompleted = now.toISOString();
+    const krok = newTask('krok', 'b'); krok.parentId = etap.id; krok.dateCompleted = now.toISOString();
+    expect(containerDescendants(projekt, [projekt, etap, krok]).map((t) => t.title)).toEqual(['etap', 'krok']);
+  });
+});
+
+describe('completedByDay (handoff 2f: history is an axis of days)', () => {
+  it('groups by local completion day, newest day first', () => {
+    const a = newTask('wcześniej dziś', 'a'); a.dateCompleted = '2026-09-05T08:00:00.000Z';
+    const b = newTask('później dziś', 'a'); b.dateCompleted = '2026-09-05T15:00:00.000Z';
+    const c = newTask('wczoraj', 'b'); c.dateCompleted = '2026-09-04T12:00:00.000Z';
+    const open = newTask('otwarte', 'c');
+    const days = completedByDay([a, c, open, b]);
+    expect(days.map((d) => d.day)).toEqual(['2026-09-05', '2026-09-04']);
+    // newest completion first inside a day, matching completedHistory
+    expect(days[0].tasks.map((t) => t.title)).toEqual(['później dziś', 'wcześniej dziś']);
+    expect(days[1].tasks.map((t) => t.title)).toEqual(['wczoraj']);
+  });
+
+  it('returns nothing when nothing was completed', () => {
+    expect(completedByDay([newTask('otwarte', 'a')])).toEqual([]);
   });
 });
 

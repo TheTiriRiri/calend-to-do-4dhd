@@ -21,7 +21,13 @@
         <p class="muted">{strings.master.oneStepHint}</p>
         <ul>
           {#each steps as step (step.id)}
-            <li><button class="muted" onclick={() => onedit(step, isContainer(step, $tasks))}>{step.title}</button></li>
+            <!-- a finished step keeps its row and shows the tick (handoff 2a) -->
+            <li data-done={step.dateCompleted ? 'true' : null}>
+              <button class="muted" onclick={() => onedit(step, isContainer(step, $tasks))}>
+                {#if step.dateCompleted}<span aria-hidden="true">✓</span>{/if}
+                {step.title}
+              </button>
+            </li>
           {/each}
         </ul>
       </section>

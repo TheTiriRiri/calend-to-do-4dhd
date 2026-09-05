@@ -52,13 +52,36 @@ export function topLevelContainers(tasks: Task[]): Task[] {
   return tasks.filter((t) => containers.has(t.id) && !t.parentId && !t.dateCompleted);
 }
 
-/** Steps (and grandchildren, ...) of any depth under root, open ones only, in
- *  render order — depth-first so a step's own children follow it immediately.
- *  The master list shows this flattened at one indent level under the container
- *  header rather than mirroring the breakdown depth (v1 simplicity). */
+/** Steps (and grandchildren, ...) of any depth under root, in render order —
+ *  depth-first so a step's own children follow it immediately. The master list
+ *  shows this flattened at one indent level under the container header rather
+ *  than mirroring the breakdown depth (v1 simplicity).
+ *
+ *  Completed steps stay in the list (handoff 2a) and render in a done state: the
+ *  section is the record of a breakdown, and a project with three of four steps
+ *  ticked off should look like progress, not like it was never started. A
+ *  container all of whose steps are done auto-completes and drops out of the
+ *  master list entirely, so no section is ever all-done. */
 export function containerDescendants(root: Task, all: Task[]): Task[] {
-  const open = childrenOf(root, all).filter((t) => !t.dateCompleted);
-  return open.flatMap((child) => [child, ...containerDescendants(child, all)]);
+  return childrenOf(root, all).flatMap((child) => [child, ...containerDescendants(child, all)]);
+}
+
+export interface HistoryDay {
+  day: string; // local yyyy-mm-dd
+  tasks: Task[];
+}
+
+/** History grouped into an axis of days (handoff 2f), newest day first and
+ *  newest completion first inside a day. */
+export function completedByDay(tasks: Task[]): HistoryDay[] {
+  const days = new Map<string, Task[]>();
+  for (const task of completedHistory(tasks)) {
+    const day = toISODate(new Date(task.dateCompleted as string));
+    const bucket = days.get(day);
+    if (bucket) bucket.push(task);
+    else days.set(day, [task]);
+  }
+  return [...days].map(([day, dayTasks]) => ({ day, tasks: dayTasks }));
 }
 
 export interface MasterListSection {

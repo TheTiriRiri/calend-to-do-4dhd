@@ -44,6 +44,26 @@ test('2a: a step lives under its container section, never as a second loose row'
   await expect(page.locator('main > ul > li')).toHaveCount(0);
 });
 
+test('2a: a finished step keeps its row in the container, ticked', async ({ page }) => {
+  await addTask(page, 'Projekt w toku');
+  await page.getByText('Projekt w toku').click();
+  await breakIntoSteps(page, ['Krok zrobiony', 'Krok otwarty']);
+
+  // put the first step on today and tick it off there
+  await page.getByRole('button', { name: 'Krok zrobiony' }).click();
+  await page.getByLabel(/Dzień/).fill(new Date().toLocaleDateString('sv-SE'));
+  await page.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'oznacz jako zrobione' }).click();
+  await expect(page.getByText('Zrobione dziś')).toBeVisible();
+
+  await page.goto('/#/lista');
+  const section = page.locator('section.sheet').filter({ hasText: 'Projekt w toku' });
+  await expect(section.locator('li[data-done="true"]')).toHaveText(/Krok zrobiony/);
+  await expect(section.getByRole('button', { name: 'Krok otwarty' })).toBeVisible();
+});
+
 test('2c: clearing the day returns a task to the master list only', async ({ page }) => {
   await addTask(page, 'Zadanie bez daty');
   await page.getByText('Zadanie bez daty').click();
@@ -185,8 +205,14 @@ test('2f: history counts what was completed, and keeps it', async ({ page }) => 
 
   await page.goto('/#/historia');
   await expect(page.getByText('Tyle się udało: 2')).toBeVisible();
-  await expect(page.getByText('Zrobione wczoraj')).toBeVisible();
   await expect(page.getByText('Wciąż otwarte')).toBeHidden();
+
+  // one block per day, newest first, each task under its own day heading
+  const dayBlocks = page.locator('main section.sheet');
+  await expect(dayBlocks).toHaveCount(2);
+  await expect(dayBlocks.first()).toContainText('Zrobione dzisiaj');
+  await expect(dayBlocks.last()).toContainText('Zrobione wczoraj');
+  await expect(dayBlocks.last().getByRole('heading')).toHaveText(/4 września/);
 });
 
 test('2g: the review time survives a relaunch', async ({ page }) => {
