@@ -16,7 +16,7 @@ All code, code comments, filenames, and generated files in **English**. User-fac
 
 No linter or formatter is configured (no ESLint/Prettier/Biome). Style is whatever `svelte-check` + `tsc` accept: 2-space indent, single quotes, semicolons, trailing commas.
 
-## Repository layout
+## The docs/ directory
 
 **`docs/` is gitignored in full and local-only.** It holds the source .pptx (36 slides, the domain spec), a 107 MB recording of a live therapy session with real participants, its whisper transcript, and `scripts/video-tools/` (`transcribe.sh` / `frames.sh` / `video-to-md.sh`; Polish speech needs `-l pl`). Read it to inform design, but never copy participant names, quotes, or frames into tracked files. A fresh clone has no `docs/`: this file plus `specs/` are the surviving spec.
 

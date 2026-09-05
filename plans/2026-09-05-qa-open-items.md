@@ -35,7 +35,7 @@ tokens.
 
 | # | Gap | Effort | What to write |
 |---|---|---|---|
-| 2.1 | The "z wcześniejszych dni" badge has no e2e (unit only) | S | seed a task scheduled two days back, assert the badge on `#/` |
+| ~~2.1~~ | ~~The "z wcześniejszych dni" badge has no e2e (unit only)~~ — **closed 2026-09-05**, covered by the backdated `'Pranie'` task in `daily-actions.spec.ts` | S | done |
 | 2.2 | No DST test | S | unit test over 2026-10-25 (Europe/Warsaw): a task scheduled that day is active exactly once, and `moveToNextDay` lands on the 26th |
 | 2.3 | `newTask` gives two tasks created in the same millisecond an identical `sortOrder` | S | make `sortOrder` strictly increasing (a module-level counter breaking the tie), unit test two consecutive creations |
 | 2.4 | Zero accessibility automation | M | add `@axe-core/playwright`, run it over the five routes with the seeded fixture from `theme.spec.ts`, fail on serious/critical only |
