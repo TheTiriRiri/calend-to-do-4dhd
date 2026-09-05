@@ -114,6 +114,23 @@ for (const route of ROUTES) {
   });
 }
 
+test('the install colours match the design tokens', async ({ page, request }) => {
+  // These two are the only colours iOS shows before the app renders: the manifest
+  // background paints the launch screen, theme-color tints the browser chrome.
+  // Left at pre-redesign values they flash the old blue on every cold start.
+  await page.goto('/');
+  const tokens = await page.evaluate(() => ({
+    accent: getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim(),
+    bg: getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),
+    meta: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
+  }));
+  const manifest = await (await request.get('/manifest.webmanifest')).json();
+
+  expect(manifest.background_color).toBe(tokens.bg);
+  expect(manifest.theme_color).toBe(tokens.accent);
+  expect(tokens.meta).toBe(tokens.accent);
+});
+
 test('nothing on the review screen has rounded corners', async ({ page }) => {
   // seed one A task (renders an open .blueprint .section) and two B tasks
   // (collapsed behind a .tile, per the A-before-B rule) so the assertion
