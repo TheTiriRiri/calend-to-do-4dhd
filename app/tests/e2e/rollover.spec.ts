@@ -38,3 +38,32 @@ test('the daily list follows the clock across midnight when the app returns to f
   await expect(page.getByRole('button', { name: 'Zadanie przez północ' })).toBeVisible();
   await expect(page.getByText('z wcześniejszych dni')).toBeVisible();
 });
+
+test('a task completed yesterday leaves the done-today strip and stays in history', async ({ page }) => {
+  await page.clock.install({ time: OPENED_AT });
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
+  await page.reload();
+
+  await page.goto('/#/lista');
+  await page.getByRole('button', { name: 'Dodaj' }).click();
+  await page.getByPlaceholder('Co jest do zrobienia?').fill('Wczorajszy sukces');
+  await page.getByRole('button', { name: 'A — dziś/jutro' }).click();
+  await page.getByText('Wczorajszy sukces').click();
+  await page.getByLabel(/Dzień/).fill(SCHEDULED_DAY);
+  await page.getByRole('button', { name: 'Zapisz' }).click();
+  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'oznacz jako zrobione' }).click();
+  await expect(page.getByText('Zrobione dziś')).toBeVisible();
+
+  await page.clock.setSystemTime(NEXT_MORNING);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+  // the strip is today's proof of work only — yesterday's win moves to history,
+  // it is never deleted (dateCompleted is the record)
+  await expect(page.getByText('Zrobione dziś')).toBeHidden();
+  await page.goto('/#/historia');
+  await expect(page.getByText('Wczorajszy sukces')).toBeVisible();
+});

@@ -55,6 +55,40 @@ test('completing a container step does not add the container to the done-today s
   await expect(page.locator('ul.muted li')).toHaveCount(1);
 });
 
+test('a scheduled container never reaches the daily list — only its step does', async ({ page }) => {
+  // A container carries no date once it is broken down, so the UI cannot produce
+  // this state; a hand-edited or older backup can. activeTasks() filters
+  // containers defensively and this is the only test that exercises that filter:
+  // a container on the daily list would be an untickable row (its completion is
+  // derived from its steps).
+  const today = new Date().toLocaleDateString('sv-SE');
+  const base = { priority: 'a', dateAdded: '2026-08-27T10:00:00.000Z', sortOrder: 0 };
+  const backup = {
+    schema: 1,
+    exportedAt: '2026-08-27T10:00:00.000Z',
+    tasks: [
+      { id: 'parent-1', title: 'Kontener z datą', scheduledDate: today, ...base },
+      { id: 'step-1', title: 'Krok kontenera', parentId: 'parent-1', scheduledDate: today, ...base },
+    ],
+    categories: [],
+    events: [],
+    problemForms: [],
+    solutions: [],
+  };
+  await page.goto('/#/ustawienia');
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'container.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(backup)),
+  });
+  await expect(page.getByText('Wczytano kopię.')).toBeVisible();
+
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Krok kontenera' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Kontener z datą' })).toBeHidden();
+});
+
 test('priority change via the editor moves the task to its new section', async ({ page }) => {
   await addTaskScheduledToday(page, 'Zmiana priorytetu', 'C — może poczekać');
 
