@@ -78,6 +78,24 @@ test('move to tomorrow removes a task from the active list', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Zadanie do przełożenia' })).toBeHidden();
 });
 
+test('completing the last A task opens B — collapsing counts active tasks, not done ones', async ({ page }) => {
+  await addTaskScheduledToday(page, 'Jedyne pilne', 'A — dziś/jutro');
+  await addTaskScheduledToday(page, 'Mniej pilne po A', 'B — częściowo pilne');
+
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: '1 zadanie' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mniej pilne po A' })).toBeHidden();
+
+  await page.getByRole('button', { name: 'oznacz jako zrobione' }).click();
+
+  // the completed A stays visible in the done-today strip — if the collapse rule
+  // ever counted it as non-empty, B would stay shut and the protocol's "all A
+  // before B" would turn into "B never"
+  await expect(page.getByText('Zrobione dziś')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mniej pilne' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mniej pilne po A' })).toBeVisible();
+});
+
 test('a collapsed section shows a Polish-correct task count and expands on tap', async ({ page }) => {
   await addTaskScheduledToday(page, 'Pilne raz', 'A — dziś/jutro');
   await addTaskScheduledToday(page, 'Mniej pilne raz', 'B — częściowo pilne');
