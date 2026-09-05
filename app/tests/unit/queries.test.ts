@@ -137,7 +137,21 @@ describe('newTask sortOrder (I-2)', () => {
   it('assigns an increasing sortOrder so later insertions sort last', () => {
     const first = newTask('pierwsze', 'a');
     const second = newTask('drugie', 'a');
-    expect(second.sortOrder).toBeGreaterThanOrEqual(first.sortOrder);
+    expect(second.sortOrder).toBeGreaterThan(first.sortOrder);
+  });
+
+  // QA 2.3: a bare Date.now() gives every task in the same millisecond the same
+  // sortOrder, and sortedForDailyList then falls back to table order
+  it('stays strictly increasing for a burst created inside one millisecond', () => {
+    const orders = Array.from({ length: 20 }, (_, i) => newTask(`z${i}`, 'a').sortOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+    expect([...orders].sort((x, y) => x - y)).toEqual(orders);
+  });
+
+  it('keeps insertion order in the daily list for tasks added back to back', () => {
+    const created = ['a', 'b', 'c', 'd'].map((t) => newTask(t, 'a'));
+    const shuffled = [created[2], created[0], created[3], created[1]];
+    expect(sortedForDailyList(shuffled).map((t) => t.title)).toEqual(['a', 'b', 'c', 'd']);
   });
 });
 
