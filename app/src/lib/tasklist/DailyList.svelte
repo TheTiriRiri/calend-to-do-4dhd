@@ -2,8 +2,8 @@
   import { liveQuery } from 'dexie';
   import { db } from '../models/db';
   import type { Priority, Task } from '../models/types';
-  import { activeTasks, doneTodayTasks, isEarlierThanToday } from '../models/queries';
-  import { isCollapsed } from '../models/collapse';
+  import { activeTasks, doneTodayTasks, isEarlierThanToday, priorityRank } from '../models/queries';
+  import { expansionHolds, isCollapsed } from '../models/collapse';
   import { completeWithParent, uncompleteWithParent } from '../models/completion';
   import { moveToNextDay } from '../models/schedule';
   import { strings } from '../design/strings';
@@ -11,7 +11,8 @@
 
   let { onedit }: { onedit: (task: Task) => void } = $props();
   const tasks = liveQuery(() => db.tasks.toArray());
-  let manuallyExpanded = $state<ReadonlySet<Priority>>(new Set());
+  // section -> the higher-priority task ids that were active when it was expanded
+  let expandedWith = $state<ReadonlyMap<Priority, ReadonlySet<string>>>(new Map());
   // day-dependent deriveds re-run when the app returns to foreground —
   // otherwise "today" stays frozen at mount across midnight
   let nowTick = $state(0);
@@ -25,6 +26,14 @@
     return doneTodayTasks($tasks ?? []);
   });
   const nonEmpty = $derived(new Set(active.map((t) => t.priority)));
+  // an expand survives only while nothing new turns up above the section
+  const manuallyExpanded = $derived(
+    new Set(
+      [...expandedWith]
+        .filter(([p, ids]) => expansionHolds(ids, higherActiveIds(p)))
+        .map(([p]) => p),
+    ),
+  );
   const now = $derived.by(() => {
     void nowTick;
     return new Date();
@@ -36,8 +45,11 @@
     { p: 'c', letter: 'C', name: strings.dailyList.sectionNameC },
   ];
 
+  function higherActiveIds(p: Priority): string[] {
+    return active.filter((t) => priorityRank[t.priority] < priorityRank[p]).map((t) => t.id);
+  }
   function expand(p: Priority) {
-    manuallyExpanded = new Set(manuallyExpanded).add(p);
+    expandedWith = new Map(expandedWith).set(p, new Set(higherActiveIds(p)));
   }
   async function onComplete(task: Task) {
     await db.tasks.bulkPut(completeWithParent(task, $tasks ?? []));

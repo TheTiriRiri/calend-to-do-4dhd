@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newTask } from '../../src/lib/models/types';
-import { isCollapsed } from '../../src/lib/models/collapse';
+import { expansionHolds, isCollapsed } from '../../src/lib/models/collapse';
 import { completeWithParent, completeParentIfDone, uncompleteWithParent } from '../../src/lib/models/completion';
 import { moveToNextDay, schedule, unschedule } from '../../src/lib/models/schedule';
 import { addDays, startOfDay, toISODate } from '../../src/lib/models/dates';
@@ -22,6 +22,23 @@ describe('isCollapsed (hard rule: A before B before C)', () => {
   });
   it('manual expand overrides', () => {
     expect(isCollapsed('c', new Set(['a', 'c']), new Set(['c' as const]))).toBe(false);
+  });
+});
+
+describe('expansionHolds (a deliberate expand is not a permanent one)', () => {
+  it('holds while the sections above it only shrink', () => {
+    const atExpand = new Set(['a1', 'a2']);
+    expect(expansionHolds(atExpand, ['a1', 'a2'])).toBe(true);
+    expect(expansionHolds(atExpand, ['a1'])).toBe(true);
+    expect(expansionHolds(atExpand, [])).toBe(true);
+  });
+  it('drops as soon as new work appears above it', () => {
+    expect(expansionHolds(new Set(['a1']), ['a1', 'a2'])).toBe(false);
+    // completing one A and adding another is still new work, not the old one
+    expect(expansionHolds(new Set(['a1']), ['a2'])).toBe(false);
+  });
+  it('A has nothing above it, so its expansion always holds', () => {
+    expect(expansionHolds(new Set(), [])).toBe(true);
   });
 });
 

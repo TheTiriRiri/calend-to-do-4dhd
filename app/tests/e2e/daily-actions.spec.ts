@@ -130,6 +130,24 @@ test('completing the last A task opens B — collapsing counts active tasks, not
   await expect(page.getByRole('button', { name: 'Mniej pilne po A' })).toBeVisible();
 });
 
+test('an expanded section closes again when new higher-priority work arrives', async ({ page }) => {
+  await addTaskScheduledToday(page, 'Pilne istniejące', 'A — dziś/jutro');
+  await addTaskScheduledToday(page, 'Mniej pilne otwarte', 'B — częściowo pilne');
+
+  await page.goto('/');
+  await page.getByRole('button', { name: '1 zadanie' }).click();
+  await expect(page.getByRole('button', { name: 'Mniej pilne otwarte' })).toBeVisible();
+
+  // a deliberate tap opens B, it does not switch the rule off for the session:
+  // a new A means A comes first again
+  await page.getByRole('button', { name: 'Dodaj zadanie' }).click();
+  await page.locator('.overlay .sheet').getByPlaceholder('Co jest do zrobienia?').fill('Pilne nowe');
+  await page.locator('.overlay .sheet').getByRole('button', { name: 'A — dziś/jutro' }).click();
+
+  await expect(page.getByRole('button', { name: 'Mniej pilne otwarte' })).toBeHidden();
+  await expect(page.getByRole('button', { name: '1 zadanie' })).toBeVisible();
+});
+
 test('a collapsed section shows a Polish-correct task count and expands on tap', async ({ page }) => {
   await addTaskScheduledToday(page, 'Pilne raz', 'A — dziś/jutro');
   await addTaskScheduledToday(page, 'Mniej pilne raz', 'B — częściowo pilne');
