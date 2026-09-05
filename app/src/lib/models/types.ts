@@ -42,12 +42,24 @@ export interface Solution {
   rating: number;            // 1-10
 }
 
+/** Date.now() alone collides for tasks created inside the same millisecond - two
+ *  quick-adds in a row, or a wizard that spawns a task right after its parent -
+ *  and equal sortOrders fall back to table order, which is not insertion order.
+ *  The counter breaks the tie so the sequence is strictly increasing. It is
+ *  per-session state; a later session restarts from a larger Date.now() anyway. */
+let lastSortOrder = 0;
+
+function nextSortOrder(): number {
+  lastSortOrder = Math.max(Date.now(), lastSortOrder + 1);
+  return lastSortOrder;
+}
+
 export function newTask(title: string, priority: Priority): Task {
   return {
     id: crypto.randomUUID(),
     title,
     priority,
     dateAdded: new Date().toISOString(),
-    sortOrder: Date.now(), // monotonic across creations -> insertion order within a section
+    sortOrder: nextSortOrder(), // strictly increasing -> insertion order within a section
   };
 }
