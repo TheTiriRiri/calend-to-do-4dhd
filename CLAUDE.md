@@ -105,6 +105,7 @@ Calendar + task list tool for people with ADHD, based on a specific CBT protocol
 - A: do today or tomorrow; B: partly urgent; C: least important (often easiest and most tempting).
 - Category shifts over time as the deadline approaches (C -> B -> A), adjusted manually during daily review.
 - Hard rule from the material: all A before B, all B before C. Enforced structurally: fixed A/B/C sections, B and C **collapsed while a higher section has active tasks**, priority change only via the explicit editor action, never by drag. No confirm dialogs when ticking a lower-priority task - that would read as a reprimand.
+- A soft, non-blocking hint appears in the daily list's A section once more than 3 active A tasks sit on it (`hasTooManyA` / `A_COMFORT_LIMIT` in `queries.ts`). The threshold is a **product heuristic, not from the material** — the material defines A as "today or tomorrow" and sets no count. Rolled-over A tasks count. Deliberately not user-configurable, and deliberately a neutral statement with no colour, icon or badge, so it stays a nudge and not the overdue nagging the protocol forbids.
 
 **Task model from the material's template (slide 22):** priority, task text, date added to list, date completed. Completion date serves as proof of work - do not delete tasks, mark them completed.
 
