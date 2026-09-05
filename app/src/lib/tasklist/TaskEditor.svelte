@@ -32,10 +32,12 @@
   // opens empty while a category is set — display would lie)
   let prefilled = false;
   $effect(() => {
-    if (!prefilled && $categories) {
-      categoryName = $categories.find((c) => c.id === task.categoryId)?.name ?? '';
-      prefilled = true;
-    }
+    if (prefilled || !$categories) return;
+    prefilled = true;
+    // the table resolves a tick after mount; typing into the field in that window
+    // used to be wiped by this prefill, and the category was then never saved
+    if (categoryName !== '') return;
+    categoryName = $categories.find((c) => c.id === task.categoryId)?.name ?? '';
   });
 
   async function save() {
