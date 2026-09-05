@@ -1,23 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { addTaskScheduled, bypassOnboarding } from './utils';
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
-});
-
-async function addTaskScheduled(page: import('@playwright/test').Page, title: string, priority: 'A — dziś/jutro' | 'B — częściowo pilne' | 'C — może poczekać', daysAgo = 0) {
-  const day = new Date();
-  day.setDate(day.getDate() - daysAgo);
-  await page.goto('/#/lista');
-  await page.getByRole('button', { name: 'Dodaj' }).click();
-  await page.getByPlaceholder('Co jest do zrobienia?').fill(title);
-  await page.getByRole('button', { name: priority }).click();
-  await page.getByText(title).click();
-  await page.getByLabel(/Dzień/).fill(day.toLocaleDateString('sv-SE'));
-  await page.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeHidden();
-}
+test.beforeEach(({ page }) => bypassOnboarding(page));
 
 test('undo restores a completed task to its section', async ({ page }) => {
   await addTaskScheduled(page, 'Zadanie do cofnięcia', 'A — dziś/jutro');

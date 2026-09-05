@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { bypassOnboarding } from './utils';
 
 // Behaviour locks for the screens the 2a-2g / 3a-3e sweep will rewrite
 // (MasterList, TaskEditor, BreakdownWizard, ProblemFormWizard, History,
@@ -7,11 +8,7 @@ import type { Page } from '@playwright/test';
 // how it looks, so a restyle that keeps the behaviour keeps them green — and a
 // restyle that quietly drops a rule turns one of them red on the spot.
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
-});
+test.beforeEach(({ page }) => bypassOnboarding(page));
 
 async function addTask(page: Page, title: string, priority = 'A — dziś/jutro') {
   await page.goto('/#/lista');

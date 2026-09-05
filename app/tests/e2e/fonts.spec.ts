@@ -1,12 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { bypassOnboarding } from './utils';
 
 // bypass onboarding: that screen has no heading and no .btn, so nothing on it
 // would ever request Barlow Condensed and the face would stay "unloaded"
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('onboarded', '1'));
-  await page.reload();
-});
+test.beforeEach(({ page }) => bypassOnboarding(page));
 
 test('typography is self-hosted: no font CDN request, Barlow actually loads', async ({ page }) => {
   const external: string[] = [];
