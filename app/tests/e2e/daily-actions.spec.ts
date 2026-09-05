@@ -166,7 +166,7 @@ test('a collapsed section shows a Polish-correct task count and expands on tap',
 });
 
 test('a 4th active A task shows the overload hint, which clears once one is done', async ({ page }) => {
-  const hint = page.getByText('Sporo w A na dziś — część może zaczekać do jutra.');
+  const hint = page.locator('[data-priority="a"]').getByText('Sporo w A na dziś — część może zaczekać do jutra.');
 
   // 'Pranie' is dated two days back: it proves decision D-1 end to end (a rolled-over
   // A task counts) and asserts the "z wcześniejszych dni" badge, which had no e2e at
