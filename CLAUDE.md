@@ -53,7 +53,7 @@ Playwright: chromium always runs; webkit project only registers when `E2E_WEBKIT
 | `types.ts` | `Task`, `Category`, `CalendarEvent`, `ProblemForm`, `Solution`, `newTask()` |
 | `db.ts` | `AppDB` (Dexie, DB name `calendtodo`, schema **v1**) |
 | `dates.ts` | `startOfDay`, `todayStart`, `addDays`, `sameDay`, `toISODate` |
-| `queries.ts` | `isActive`, `isDoneToday`, `sortedForDailyList`, `priorityRank`, `activeTasks`, `doneTodayTasks`, `topLevelContainers`, `completedHistory`, `completedByDay`, `isContainer`, `childrenOf`, `containerDescendants`, `masterListSections` |
+| `queries.ts` | `isActive`, `isDoneToday`, `sortedForDailyList`, `priorityRank`, `activeTasks`, `doneTodayTasks`, `topLevelContainers`, `completedHistory`, `completedByDay`, `isContainer`, `childrenOf`, `containerDescendants`, `masterListSections`, `A_COMFORT_LIMIT`, `hasTooManyA`, `isEarlierThanToday`, `canAdvanceWizardStep` |
 | `collapse.ts` | `isCollapsed` - B/C section collapse rule |
 | `completion.ts` | recursive container complete / un-complete / auto-complete parent |
 | `schedule.ts` | `schedule`, `moveToNextDay`, `unschedule` |
