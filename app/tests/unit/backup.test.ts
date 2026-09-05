@@ -82,6 +82,33 @@ describe('backup round-trip', () => {
     expect(() => deserialize(json)).toThrow();
   });
 
+  // tasks and events were validated from the start; the other three tables went
+  // straight into the DB unchecked, so a junk row survived the import and only
+  // blew up later, in a view (M-4 applied to the remaining tables)
+  it('rejects a category with a missing name', () => {
+    const categories = [{ id: 'c1' }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks: [], categories, events: [], problemForms: [], solutions: [] });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects a problem form with a wrong-typed createdAt', () => {
+    const problemForms = [{ id: 'f1', problem: 'x', createdAt: 1790000000000 }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks: [], categories: [], events: [], problemForms, solutions: [] });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects a solution whose pros is not an array', () => {
+    const solutions = [{ id: 's1', formId: 'f1', text: 'x', pros: 'plusy', cons: [], rating: 5 }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks: [], categories: [], events: [], problemForms: [], solutions });
+    expect(() => deserialize(json)).toThrow();
+  });
+
+  it('rejects a solution with a non-numeric rating', () => {
+    const solutions = [{ id: 's1', formId: 'f1', text: 'x', pros: [], cons: [], rating: '9' }];
+    const json = JSON.stringify({ schema: SCHEMA_VERSION, exportedAt: '', tasks: [], categories: [], events: [], problemForms: [], solutions });
+    expect(() => deserialize(json)).toThrow();
+  });
+
   it('rejects a task missing a title', () => {
     const tables = {
       tasks: [{ id: 't1', priority: 'a', dateAdded: '2026-08-27T10:00:00' }],

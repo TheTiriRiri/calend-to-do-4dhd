@@ -57,6 +57,34 @@ function validateTables(data: Backup): void {
       throw new Error('backup contains an invalid task row');
     }
   }
+  for (const category of data.categories) {
+    if (typeof category?.id !== 'string' || typeof category.name !== 'string') {
+      throw new Error('backup contains an invalid category row');
+    }
+  }
+  for (const form of data.problemForms) {
+    if (
+      typeof form?.id !== 'string' ||
+      typeof form.problem !== 'string' ||
+      typeof form.createdAt !== 'string' ||
+      !isOptionalString(form.chosenSolutionId)
+    ) {
+      throw new Error('backup contains an invalid problem form row');
+    }
+  }
+  for (const solution of data.solutions) {
+    if (
+      typeof solution?.id !== 'string' ||
+      typeof solution.formId !== 'string' ||
+      typeof solution.text !== 'string' ||
+      // the wizard renders these with {#each} — a non-array throws mid-render
+      !Array.isArray(solution.pros) ||
+      !Array.isArray(solution.cons) ||
+      typeof solution.rating !== 'number'
+    ) {
+      throw new Error('backup contains an invalid solution row');
+    }
+  }
   for (const event of data.events) {
     if (
       typeof event?.id !== 'string' ||
